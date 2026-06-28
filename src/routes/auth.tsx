@@ -134,7 +134,8 @@ function AuthPage() {
                 </div>
                 <div>
                   <Label>Email</Label>
-                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required readOnly={Boolean(inviteInfo)} />
+
                 </div>
                 <div>
                   <Label>Senha</Label>
