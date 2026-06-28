@@ -60,15 +60,14 @@ function InvitesPage() {
 
   const createInvite = useMutation({
     mutationFn: async () => {
-      const payload: Record<string, unknown> = {
+      const { data: user } = await supabase.auth.getUser();
+      const { error } = await supabase.from("invites").insert({
         email,
         is_leader: isLeader,
         note: note || null,
         area_id: areaId === "none" ? null : areaId,
-      };
-      const { data: user } = await supabase.auth.getUser();
-      if (user.user) payload.invited_by = user.user.id;
-      const { error } = await supabase.from("invites").insert(payload);
+        invited_by: user.user?.id ?? null,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
