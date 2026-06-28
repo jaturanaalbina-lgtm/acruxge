@@ -6,7 +6,7 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { Cpu, LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, ShieldCheck, Mail } from "lucide-react";
+import { Cpu, LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, ShieldCheck, Mail, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const ICONS: Record<string, any> = { social: Users, engenharia: Wrench, programacao: Code, marketing: Megaphone };
@@ -53,6 +53,11 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/dashboard"}>
                   <Link to="/dashboard"><LayoutDashboard /> <span>Início</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/ponto"}>
+                  <Link to="/ponto"><Clock /> <span>Ponto</span></Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>

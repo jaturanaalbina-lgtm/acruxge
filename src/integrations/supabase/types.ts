@@ -324,6 +324,53 @@ export type Database = {
           },
         ]
       }
+      time_entries: {
+        Row: {
+          area_id: string | null
+          clock_in: string
+          clock_out: string | null
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          notes: string | null
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          area_id?: string | null
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id: string
+          work_date?: string
+        }
+        Update: {
+          area_id?: string | null
+          clock_in?: string
+          clock_out?: string | null
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          notes?: string | null
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "time_entries_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
