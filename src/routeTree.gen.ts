@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
@@ -30,6 +31,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
+  id: '/setup',
+  path: '/setup',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
   '/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug': typeof AuthenticatedAreaSlugIndexRoute
   '/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
   '/_authenticated/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
   '/_authenticated/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/setup'
     | '/social/content'
     | '/area/$slug/'
     | '/area/$slug/project/$id'
@@ -95,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/setup'
     | '/social/content'
     | '/area/$slug'
     | '/area/$slug/project/$id'
@@ -104,6 +115,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/dashboard'
+    | '/_authenticated/setup'
     | '/_authenticated/social/content'
     | '/_authenticated/area/$slug/'
     | '/_authenticated/area/$slug/project/$id'
@@ -138,6 +150,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/setup': {
+      id: '/_authenticated/setup'
+      path: '/setup'
+      fullPath: '/setup'
+      preLoaderRoute: typeof AuthenticatedSetupRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -171,6 +190,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
   AuthenticatedAreaSlugIndexRoute: typeof AuthenticatedAreaSlugIndexRoute
   AuthenticatedAreaSlugProjectIdRoute: typeof AuthenticatedAreaSlugProjectIdRoute
@@ -178,6 +198,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
   AuthenticatedAreaSlugIndexRoute: AuthenticatedAreaSlugIndexRoute,
   AuthenticatedAreaSlugProjectIdRoute: AuthenticatedAreaSlugProjectIdRoute,
