@@ -1,0 +1,291 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Play, Square, Clock, Calendar, FileText, Download, Trash2, Save } from "lucide-react";
+import { toast } from "sonner";
+
+export const Route = createFileRoute("/_authenticated/ponto")({
+  ssr: false,
+  component: PontoPage,
+});
+
+function fmtDuration(mins: number) {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
+}
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+}
+function fmtDate(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
+}
+
+function PontoPage() {
+  const { user } = Route.useRouteContext();
+  const qc = useQueryClient();
+  const [now, setNow] = useState(Date.now());
+  const [filterFrom, setFilterFrom] = useState(() => {
+    const d = new Date(); d.setDate(1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [filterTo, setFilterTo] = useState(() => new Date().toISOString().slice(0, 10));
+  const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const { data: open } = useQuery({
+    queryKey: ["time-open", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("time_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .is("clock_out", null)
+        .order("clock_in", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+  });
+
+  const { data: entries = [] } = useQuery({
+    queryKey: ["time-entries", user.id, filterFrom, filterTo],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("time_entries")
+        .select("*")
+        .eq("user_id", user.id)
+        .gte("work_date", filterFrom)
+        .lte("work_date", filterTo)
+        .order("clock_in", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const startMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("time_entries").insert({ user_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ponto iniciado");
+      qc.invalidateQueries({ queryKey: ["time-open", user.id] });
+      qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const stopMut = useMutation({
+    mutationFn: async () => {
+      if (!open) return;
+      const end = new Date();
+      const start = new Date(open.clock_in);
+      const mins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+      const { error } = await supabase
+        .from("time_entries")
+        .update({ clock_out: end.toISOString(), duration_minutes: mins })
+        .eq("id", open.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Ponto encerrado");
+      qc.invalidateQueries({ queryKey: ["time-open", user.id] });
+      qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const saveNotesMut = useMutation({
+    mutationFn: async ({ id, notes }: { id: string; notes: string }) => {
+      const { error } = await supabase.from("time_entries").update({ notes }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Anotação salva");
+      qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("time_entries").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Registro removido");
+      qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+    },
+  });
+
+  const liveMinutes = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 60000)) : 0;
+
+  const totalMin = useMemo(
+    () => entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0),
+    [entries]
+  );
+
+  const byDate = useMemo(() => {
+    const map: Record<string, typeof entries> = {};
+    for (const e of entries) (map[e.work_date] ||= []).push(e);
+    return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
+  }, [entries]);
+
+  const exportCSV = () => {
+    const header = ["Data", "Entrada", "Saída", "Duração (min)", "Atividades"];
+    const rows = entries.map((e) => [
+      e.work_date,
+      fmtTime(e.clock_in),
+      e.clock_out ? fmtTime(e.clock_out) : "",
+      e.duration_minutes ?? "",
+      (e.notes ?? "").replace(/\n/g, " "),
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ponto-${filterFrom}-a-${filterTo}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Ponto</h1>
+        <p className="text-sm text-muted-foreground">Registre seu horário de trabalho e descreva o que foi feito no dia.</p>
+      </div>
+
+      <Card className="p-6 bg-gradient-to-br from-acrux/10 to-transparent border-acrux/30">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+          <div className="flex items-center gap-4">
+            <div className="size-14 rounded-xl bg-acrux/20 flex items-center justify-center">
+              <Clock className="size-7 text-acrux" />
+            </div>
+            <div>
+              <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                {open ? "Em andamento" : "Parado"}
+              </div>
+              <div className="text-3xl font-mono font-semibold">
+                {open ? fmtDuration(liveMinutes) : "00h00"}
+              </div>
+              {open && (
+                <div className="text-xs text-muted-foreground">
+                  Iniciado às {fmtTime(open.clock_in)}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {!open ? (
+              <Button size="lg" onClick={() => startMut.mutate()} disabled={startMut.isPending}>
+                <Play /> Iniciar ponto
+              </Button>
+            ) : (
+              <Button size="lg" variant="destructive" onClick={() => stopMut.mutate()} disabled={stopMut.isPending}>
+                <Square /> Encerrar ponto
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-end gap-3 justify-between">
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">De</label>
+              <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-40" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Até</label>
+              <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-40" />
+            </div>
+            <Badge variant="secondary" className="h-9 px-3 text-sm">
+              Total: <span className="font-mono ml-1">{fmtDuration(totalMin)}</span>
+            </Badge>
+          </div>
+          <Button variant="outline" onClick={exportCSV} disabled={entries.length === 0}>
+            <Download /> Exportar CSV
+          </Button>
+        </div>
+      </Card>
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold flex items-center gap-2"><FileText className="size-4" /> Relatório do período</h2>
+        {byDate.length === 0 && (
+          <Card className="p-8 text-center text-sm text-muted-foreground">Nenhum registro neste período.</Card>
+        )}
+        {byDate.map(([date, list]) => {
+          const dayTotal = list.reduce((s, e) => s + (e.duration_minutes ?? 0), 0);
+          return (
+            <Card key={date} className="p-4 space-y-3">
+              <div className="flex items-center justify-between border-b pb-2">
+                <div className="flex items-center gap-2">
+                  <Calendar className="size-4 text-acrux" />
+                  <span className="font-medium capitalize">{fmtDate(date)}</span>
+                </div>
+                <Badge variant="outline" className="font-mono">{fmtDuration(dayTotal)}</Badge>
+              </div>
+              <div className="space-y-3">
+                {list.map((e) => {
+                  const notes = draftNotes[e.id] ?? e.notes ?? "";
+                  const dirty = notes !== (e.notes ?? "");
+                  return (
+                    <div key={e.id} className="grid md:grid-cols-[180px_1fr_auto] gap-3 items-start">
+                      <div className="text-sm">
+                        <div className="font-mono">
+                          {fmtTime(e.clock_in)} → {e.clock_out ? fmtTime(e.clock_out) : "..."}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {e.duration_minutes ? fmtDuration(e.duration_minutes) : "em curso"}
+                        </div>
+                      </div>
+                      <Textarea
+                        placeholder="O que você fez neste período? (atividades, reuniões, entregas...)"
+                        value={notes}
+                        onChange={(ev) => setDraftNotes((p) => ({ ...p, [e.id]: ev.target.value }))}
+                        rows={2}
+                        className="resize-none"
+                      />
+                      <div className="flex flex-col gap-1">
+                        <Button
+                          size="sm"
+                          variant={dirty ? "default" : "outline"}
+                          disabled={!dirty || saveNotesMut.isPending}
+                          onClick={() => saveNotesMut.mutate({ id: e.id, notes })}
+                        >
+                          <Save className="size-3" /> Salvar
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            if (confirm("Remover este registro?")) deleteMut.mutate(e.id);
+                          }}
+                        >
+                          <Trash2 className="size-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
