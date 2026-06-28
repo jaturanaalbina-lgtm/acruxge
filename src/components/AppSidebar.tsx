@@ -56,6 +56,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/ponto"}>
+                  <Link to="/ponto"><Clock /> <span>Ponto</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/invites"}>
                   <Link to="/invites"><Mail /> <span>Convites</span></Link>
                 </SidebarMenuButton>
