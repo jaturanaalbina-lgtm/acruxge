@@ -8,6 +8,14 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Cpu } from "lucide-react";
+import { lovable } from "@/integrations/lovable";
+
+async function handleGoogle() {
+  const result = await lovable.auth.signInWithOAuth("google", {
+    redirect_uri: window.location.origin,
+  });
+  if (result.error) toast.error(result.error.message ?? "Falha ao entrar com Google");
+}
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
