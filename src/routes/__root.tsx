@@ -65,6 +65,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Acrux ROBOCEP — Gestão da Equipe" },
       { name: "twitter:description", content: "Plataforma interna de gestão de projetos, tarefas, conteúdo e ponto da equipe Acrux ROBOCEP." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e293385-679a-49d1-96bb-119cd19c2eb9/id-preview-b21af5d0--3780f914-d594-4465-a6c2-d720f27142f4.lovable.app-1782686111264.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8e293385-679a-49d1-96bb-119cd19c2eb9/id-preview-b21af5d0--3780f914-d594-4465-a6c2-d720f27142f4.lovable.app-1782686111264.png" },
     ],
     links: [{ rel: "stylesheet", href: appCss }],
   }),
