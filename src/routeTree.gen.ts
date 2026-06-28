@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
+import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
@@ -35,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -65,6 +71,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invites': typeof AuthenticatedInvitesRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
@@ -74,6 +81,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/invites': typeof AuthenticatedInvitesRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug': typeof AuthenticatedAreaSlugIndexRoute
@@ -85,6 +93,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/invites': typeof AuthenticatedInvitesRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
   '/_authenticated/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
@@ -96,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/invites'
     | '/setup'
     | '/social/content'
     | '/area/$slug/'
@@ -105,6 +115,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/dashboard'
+    | '/invites'
     | '/setup'
     | '/social/content'
     | '/area/$slug'
@@ -115,6 +126,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/_authenticated/dashboard'
+    | '/_authenticated/invites'
     | '/_authenticated/setup'
     | '/_authenticated/social/content'
     | '/_authenticated/area/$slug/'
@@ -157,6 +169,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSetupRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/invites': {
+      id: '/_authenticated/invites'
+      path: '/invites'
+      fullPath: '/invites'
+      preLoaderRoute: typeof AuthenticatedInvitesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -190,6 +209,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
   AuthenticatedAreaSlugIndexRoute: typeof AuthenticatedAreaSlugIndexRoute
@@ -198,6 +218,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
   AuthenticatedAreaSlugIndexRoute: AuthenticatedAreaSlugIndexRoute,
