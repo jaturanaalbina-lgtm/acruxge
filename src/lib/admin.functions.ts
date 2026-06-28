@@ -52,7 +52,7 @@ export const claimAdmin = createServerFn({ method: "POST" })
       const rows = areas.map((a) => ({
         area_id: a.id,
         user_id: userId,
-        role: "leader" as const,
+        is_leader: true,
       }));
       const { error: memErr } = await supabaseAdmin
         .from("area_members")
