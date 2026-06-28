@@ -94,12 +94,21 @@ function AuthPage() {
           </div>
         </div>
         <Card className="glass-panel p-6">
+          {inviteInfo && (
+            <div className="mb-4 rounded-md border border-acrux/40 bg-acrux/5 p-3 text-xs">
+              <div className="font-medium text-foreground">Você foi convidado(a)</div>
+              <div className="text-muted-foreground mt-0.5">
+                Área: <span className="text-foreground">{inviteInfo.area_name ?? "—"}</span>
+                {inviteInfo.is_leader && <span className="ml-2">· papel de líder</span>}
+              </div>
+            </div>
+          )}
           <Button type="button" variant="outline" className="w-full mb-4" onClick={handleGoogle}>
             <svg className="size-4 mr-2" viewBox="0 0 24 24"><path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.5 14.6 2.5 12 2.5 6.8 2.5 2.5 6.8 2.5 12S6.8 21.5 12 21.5c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/></svg>
             Continuar com Google
           </Button>
           <div className="relative mb-4"><div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div><div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">ou com email</span></div></div>
-          <Tabs defaultValue="signin">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as "signin" | "signup")}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Criar conta</TabsTrigger>
