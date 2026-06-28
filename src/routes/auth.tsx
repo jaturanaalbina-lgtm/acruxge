@@ -19,21 +19,44 @@ async function handleGoogle() {
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({ invite: typeof s.invite === "string" ? s.invite : undefined }),
   component: AuthPage,
 });
 
+type InviteInfo = { email: string; area_name: string | null; is_leader: boolean; used_at: string | null; expires_at: string };
+
 function AuthPage() {
   const navigate = useNavigate();
+  const { invite: inviteToken } = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
+  const [tab, setTab] = useState<"signin" | "signup">(inviteToken ? "signup" : "signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
     });
   }, [navigate]);
+
+  useEffect(() => {
+    if (!inviteToken) return;
+    (async () => {
+      const { data, error } = await supabase.rpc("get_invite_by_token", { _token: inviteToken });
+      if (error || !data || data.length === 0) {
+        toast.error("Convite inválido ou não encontrado");
+        return;
+      }
+      const row = data[0] as InviteInfo;
+      if (row.used_at) { toast.error("Este convite já foi utilizado"); return; }
+      if (new Date(row.expires_at).getTime() < Date.now()) { toast.error("Convite expirado"); return; }
+      setInviteInfo(row);
+      setEmail(row.email);
+      setTab("signup");
+    })();
+  }, [inviteToken]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
