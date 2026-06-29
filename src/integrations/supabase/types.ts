@@ -193,6 +193,10 @@ export type Database = {
           created_at: string
           full_name: string | null
           id: string
+          phone: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
         }
         Insert: {
@@ -200,6 +204,10 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id: string
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
         }
         Update: {
@@ -207,6 +215,10 @@ export type Database = {
           created_at?: string
           full_name?: string | null
           id?: string
+          phone?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
         }
         Relationships: []
@@ -413,6 +425,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_approved: { Args: { _user_id: string }; Returns: boolean }
       is_area_member: {
         Args: { _area_id: string; _user_id: string }
         Returns: boolean
@@ -427,6 +440,7 @@ export type Database = {
         | "scheduled"
         | "published"
         | "cancelled"
+      profile_status: "pending" | "approved" | "rejected"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status:
         | "backlog"
@@ -571,6 +585,7 @@ export const Constants = {
         "published",
         "cancelled",
       ],
+      profile_status: ["pending", "approved", "rejected"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: [
         "backlog",

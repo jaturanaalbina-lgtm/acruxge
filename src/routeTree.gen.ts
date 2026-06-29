@@ -14,8 +14,10 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
+import { Route as AuthenticatedPendingRouteImport } from './routes/_authenticated/pending'
 import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedApprovalsRouteImport } from './routes/_authenticated/approvals'
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
 import { Route as AuthenticatedAreaSlugProjectIdRouteImport } from './routes/_authenticated/area.$slug.project.$id'
@@ -44,6 +46,11 @@ const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
   path: '/ponto',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPendingRoute = AuthenticatedPendingRouteImport.update({
+  id: '/pending',
+  path: '/pending',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
   id: '/invites',
   path: '/invites',
@@ -52,6 +59,11 @@ const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedApprovalsRoute = AuthenticatedApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedSocialContentRoute =
@@ -76,8 +88,10 @@ const AuthenticatedAreaSlugProjectIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
+  '/pending': typeof AuthenticatedPendingRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -87,8 +101,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/approvals': typeof AuthenticatedApprovalsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
+  '/pending': typeof AuthenticatedPendingRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -100,8 +116,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/approvals': typeof AuthenticatedApprovalsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/invites': typeof AuthenticatedInvitesRoute
+  '/_authenticated/pending': typeof AuthenticatedPendingRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
@@ -113,8 +131,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/approvals'
     | '/dashboard'
     | '/invites'
+    | '/pending'
     | '/ponto'
     | '/setup'
     | '/social/content'
@@ -124,8 +144,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/approvals'
     | '/dashboard'
     | '/invites'
+    | '/pending'
     | '/ponto'
     | '/setup'
     | '/social/content'
@@ -136,8 +158,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/approvals'
     | '/_authenticated/dashboard'
     | '/_authenticated/invites'
+    | '/_authenticated/pending'
     | '/_authenticated/ponto'
     | '/_authenticated/setup'
     | '/_authenticated/social/content'
@@ -188,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPontoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/pending': {
+      id: '/_authenticated/pending'
+      path: '/pending'
+      fullPath: '/pending'
+      preLoaderRoute: typeof AuthenticatedPendingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/invites': {
       id: '/_authenticated/invites'
       path: '/invites'
@@ -200,6 +231,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/approvals': {
+      id: '/_authenticated/approvals'
+      path: '/approvals'
+      fullPath: '/approvals'
+      preLoaderRoute: typeof AuthenticatedApprovalsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/social/content': {
@@ -227,8 +265,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedApprovalsRoute: typeof AuthenticatedApprovalsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
+  AuthenticatedPendingRoute: typeof AuthenticatedPendingRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
@@ -237,8 +277,10 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedApprovalsRoute: AuthenticatedApprovalsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
+  AuthenticatedPendingRoute: AuthenticatedPendingRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
@@ -257,13 +299,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
