@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Clock, FolderKanban, ListTodo, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   ssr: false,
@@ -12,9 +14,11 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 
 function Dashboard() {
   const { user } = Route.useRouteContext();
+  const qc = useQueryClient();
+  const tasksKey = ["my-tasks", user.id];
 
   const { data: tasks = [] } = useQuery({
-    queryKey: ["my-tasks", user.id],
+    queryKey: tasksKey,
     queryFn: async () => {
       const { data } = await supabase
         .from("tasks")
@@ -25,6 +29,32 @@ function Dashboard() {
       return data ?? [];
     },
   });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`my-tasks:${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "tasks", filter: `assignee_id=eq.${user.id}` },
+        (payload: any) => {
+          toast.success(`Nova tarefa atribuída: ${payload.new?.title ?? ""}`);
+          qc.invalidateQueries({ queryKey: tasksKey });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "tasks", filter: `assignee_id=eq.${user.id}` },
+        () => qc.invalidateQueries({ queryKey: tasksKey }),
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "tasks" },
+        () => qc.invalidateQueries({ queryKey: tasksKey }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user.id]);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["recent-projects"],

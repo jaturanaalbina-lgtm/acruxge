@@ -1,4 +1,4 @@
-import { useState, type DragEvent } from "react";
+import { useState, useEffect, type DragEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, User } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
@@ -34,11 +34,27 @@ interface Task {
   labels: string[] | null;
   assignee_id: string | null;
   progress: number | null;
+  area_id: string;
+  project_id: string | null;
+}
+
+function useDirectory() {
+  return useQuery({
+    queryKey: ["directory"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_directory");
+      if (error) throw error;
+      return (data ?? []) as { id: string; full_name: string | null; avatar_url: string | null }[];
+    },
+  });
 }
 
 export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?: string | null }) {
   const qc = useQueryClient();
   const key = ["tasks", areaId, projectId ?? "area"];
+  const { data: directory = [] } = useDirectory();
+  const nameOf = (id: string | null) => directory.find((u) => u.id === id)?.full_name ?? null;
 
   const { data: tasks = [] } = useQuery({
     queryKey: key,
@@ -50,6 +66,20 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
       return data as Task[];
     },
   });
+
+  // Realtime: refresh on any change to tasks in this area/project
+  useEffect(() => {
+    const channel = supabase
+      .channel(`tasks:${areaId}:${projectId ?? "area"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "tasks", filter: `area_id=eq.${areaId}` },
+        () => qc.invalidateQueries({ queryKey: key }),
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaId, projectId]);
 
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
@@ -90,7 +120,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
             </div>
             <div className="flex-1 p-2 space-y-2 overflow-y-auto">
               {items.map((task) => (
-                <TaskCard key={task.id} task={task} onDragStart={(e) => onDragStart(e, task.id)} />
+                <TaskCard key={task.id} task={task} assigneeName={nameOf(task.assignee_id)} onDragStart={(e) => onDragStart(e, task.id)} />
               ))}
               {items.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>}
             </div>
@@ -101,7 +131,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   );
 }
 
-function TaskCard({ task, onDragStart }: { task: Task; onDragStart: (e: DragEvent) => void }) {
+function TaskCard({ task, assigneeName, onDragStart }: { task: Task; assigneeName: string | null; onDragStart: (e: DragEvent) => void }) {
   const priorityClr: Record<Priority, string> = {
     urgent: "bg-red-500/15 text-red-300 border-red-500/30",
     high: "bg-orange-500/15 text-orange-300 border-orange-500/30",
@@ -120,6 +150,9 @@ function TaskCard({ task, onDragStart }: { task: Task; onDragStart: (e: DragEven
             {task.due_date && (
               <Badge variant="outline" className="gap-1"><CalIcon className="size-3" />{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</Badge>
             )}
+            {assigneeName && (
+              <Badge variant="outline" className="gap-1"><User className="size-3" />{assigneeName.split(" ")[0]}</Badge>
+            )}
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
           </div>
         </div>
@@ -130,28 +163,31 @@ function TaskCard({ task, onDragStart }: { task: Task; onDragStart: (e: DragEven
 
 export function NewTaskButton({ areaId, projectId, status = "backlog", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
+  const { data: directory = [] } = useDirectory();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState("");
+  const [assigneeId, setAssigneeId] = useState<string>("__self");
 
   const create = useMutation({
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
+      const assignee = assigneeId === "__self" ? u.user?.id : assigneeId;
       const { error } = await supabase.from("tasks").insert({
         area_id: areaId, project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
-        created_by: u.user?.id, assignee_id: u.user?.id,
+        created_by: u.user?.id, assignee_id: assignee,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
       qc.invalidateQueries({ queryKey: ["tasks", areaId] });
-      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels("");
+      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels(""); setAssigneeId("__self");
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -182,6 +218,18 @@ export function NewTaskButton({ areaId, projectId, status = "backlog", compact =
               </Select>
             </div>
             <div><Label>Prazo</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+          </div>
+          <div>
+            <Label>Responsável</Label>
+            <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__self">Eu mesmo</SelectItem>
+                {directory.map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.full_name ?? "Sem nome"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div><Label>Etiquetas (separadas por vírgula)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></div>
         </div>
