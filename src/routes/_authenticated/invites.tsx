@@ -13,6 +13,13 @@ import { toast } from "sonner";
 import { Copy, Trash2, Mail, ShieldCheck, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/invites")({
+  beforeLoad: async () => {
+    const { redirect } = await import("@tanstack/react-router");
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) throw redirect({ to: "/auth" });
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
+    if (!isAdmin) throw redirect({ to: "/dashboard" });
+  },
   component: InvitesPage,
 });
 
