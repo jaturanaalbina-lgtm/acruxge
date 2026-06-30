@@ -24,7 +24,28 @@ export function AppSidebar() {
     },
   });
 
+  const { data: adminInfo } = useQuery({
+    queryKey: ["sidebar-admin-info"],
+    queryFn: async () => {
+      const { data: u } = await supabase.auth.getUser();
+      const uid = u.user?.id;
+      let isAdmin = false;
+      if (uid) {
+        const { data } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
+        isAdmin = Boolean(data);
+      }
+      const { count } = await supabase
+        .from("user_roles")
+        .select("*", { count: "exact", head: true })
+        .eq("role", "admin");
+      return { isAdmin, anyAdmin: (count ?? 0) > 0 };
+    },
+  });
+  const isAdmin = adminInfo?.isAdmin ?? false;
+  const showSetup = isAdmin || !(adminInfo?.anyAdmin ?? true);
+
   const parents = areas.filter((a) => !a.parent_id);
+
 
   const signOut = async () => {
     await supabase.auth.signOut();
