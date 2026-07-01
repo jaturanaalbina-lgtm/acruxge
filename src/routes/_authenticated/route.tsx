@@ -5,22 +5,9 @@ import { AppSidebar } from "@/components/AppSidebar";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
-    // Gate: pending users only see /pending
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("status")
-      .eq("id", data.user.id)
-      .maybeSingle();
-    const status = profile?.status ?? "pending";
-    if (status !== "approved" && !location.pathname.startsWith("/pending")) {
-      throw redirect({ to: "/pending" });
-    }
-    if (status === "approved" && location.pathname.startsWith("/pending")) {
-      throw redirect({ to: "/dashboard" });
-    }
     return { user: data.user };
   },
   component: AuthedLayout,
