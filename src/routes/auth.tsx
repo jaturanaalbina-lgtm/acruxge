@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Cpu } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
@@ -35,10 +36,15 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
   const [tab, setTab] = useState<"signin" | "signup">(inviteToken ? "signup" : "signin");
+  const [areaId, setAreaId] = useState<string>("none");
+  const [areas, setAreas] = useState<Array<{ id: string; name: string; parent_id: string | null }>>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
+    });
+    supabase.from("areas").select("id,name,parent_id").order("sort_order").then(({ data }) => {
+      if (data) setAreas(data);
     });
   }, [navigate]);
 
@@ -74,7 +80,13 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: window.location.origin, data: { full_name: fullName } },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          full_name: fullName,
+          area_id: !inviteInfo && areaId !== "none" ? areaId : undefined,
+        },
+      },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
@@ -142,8 +154,24 @@ function AuthPage() {
                   <Label>Senha</Label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
                 </div>
+                {!inviteInfo && (
+                  <div>
+                    <Label>Área</Label>
+                    <Select value={areaId} onValueChange={setAreaId}>
+                      <SelectTrigger><SelectValue placeholder="Escolha sua área" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem área (definir depois)</SelectItem>
+                        {areas.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.parent_id ? `↳ ${a.name}` : a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <Button type="submit" disabled={loading} className="w-full">Criar conta</Button>
-                <p className="text-xs text-muted-foreground">A primeira conta criada deve ser promovida a administradora pelo banco para liberar gestão completa.</p>
+                <p className="text-xs text-muted-foreground">Um administrador pode ajustar sua área e permissões depois.</p>
               </form>
             </TabsContent>
           </Tabs>
