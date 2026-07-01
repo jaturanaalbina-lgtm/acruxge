@@ -88,13 +88,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/invites"}>
-                    <Link to="/invites"><Mail /> <span>Convites</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
               {showSetup && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === "/setup"}>
