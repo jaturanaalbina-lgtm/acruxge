@@ -80,7 +80,13 @@ function AuthPage() {
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { emailRedirectTo: window.location.origin, data: { full_name: fullName } },
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: {
+          full_name: fullName,
+          area_id: !inviteInfo && areaId !== "none" ? areaId : undefined,
+        },
+      },
     });
     setLoading(false);
     if (error) return toast.error(error.message);
