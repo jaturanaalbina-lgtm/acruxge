@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
+import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
@@ -42,6 +43,11 @@ const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
 const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
   id: '/ponto',
   path: '/ponto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
+  '/members': typeof AuthenticatedMembersRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
+  '/members': typeof AuthenticatedMembersRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/invites': typeof AuthenticatedInvitesRoute
+  '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/invites'
+    | '/members'
     | '/ponto'
     | '/setup'
     | '/social/content'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/invites'
+    | '/members'
     | '/ponto'
     | '/setup'
     | '/social/content'
@@ -138,6 +149,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/invites'
+    | '/_authenticated/members'
     | '/_authenticated/ponto'
     | '/_authenticated/setup'
     | '/_authenticated/social/content'
@@ -188,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPontoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/members': {
+      id: '/_authenticated/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AuthenticatedMembersRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/invites': {
       id: '/_authenticated/invites'
       path: '/invites'
@@ -229,6 +248,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
+  AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
@@ -239,6 +259,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
+  AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
