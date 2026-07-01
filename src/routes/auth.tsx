@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Cpu } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
-import { notifyAdminOfSignup } from "@/lib/approvals.functions";
+
 
 async function handleGoogle() {
   const result = await lovable.auth.signInWithOAuth("google", {
