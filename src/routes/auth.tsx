@@ -154,8 +154,24 @@ function AuthPage() {
                   <Label>Senha</Label>
                   <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
                 </div>
+                {!inviteInfo && (
+                  <div>
+                    <Label>Área</Label>
+                    <Select value={areaId} onValueChange={setAreaId}>
+                      <SelectTrigger><SelectValue placeholder="Escolha sua área" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem área (definir depois)</SelectItem>
+                        {areas.map((a) => (
+                          <SelectItem key={a.id} value={a.id}>
+                            {a.parent_id ? `↳ ${a.name}` : a.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <Button type="submit" disabled={loading} className="w-full">Criar conta</Button>
-                <p className="text-xs text-muted-foreground">A primeira conta criada deve ser promovida a administradora pelo banco para liberar gestão completa.</p>
+                <p className="text-xs text-muted-foreground">Um administrador pode ajustar sua área e permissões depois.</p>
               </form>
             </TabsContent>
           </Tabs>
