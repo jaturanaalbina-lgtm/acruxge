@@ -9,7 +9,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Cpu } from "lucide-react";
 import { lovable } from "@/integrations/lovable";
-import { notifyAdminOfSignup } from "@/lib/approvals.functions";
+
 
 async function handleGoogle() {
   const result = await lovable.auth.signInWithOAuth("google", {
@@ -78,13 +78,7 @@ function AuthPage() {
     });
     setLoading(false);
     if (error) return toast.error(error.message);
-    if (!inviteInfo) {
-      // Fire-and-forget admin notification via WhatsApp
-      notifyAdminOfSignup({ data: { email, fullName } }).catch(() => {});
-      toast.success("Conta criada! Aguarde a aprovação do administrador.");
-    } else {
-      toast.success("Conta criada. Você já pode entrar.");
-    }
+    toast.success("Conta criada com sucesso!");
   };
 
   return (
