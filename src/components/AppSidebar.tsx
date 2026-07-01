@@ -90,8 +90,8 @@ export function AppSidebar() {
               )}
               {isAdmin && (
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/approvals"}>
-                    <Link to="/approvals"><UserCheck /> <span>Aprovações</span></Link>
+                  <SidebarMenuButton asChild isActive={pathname === "/invites"}>
+                    <Link to="/invites"><Mail /> <span>Convites</span></Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
