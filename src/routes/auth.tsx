@@ -36,10 +36,15 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [inviteInfo, setInviteInfo] = useState<InviteInfo | null>(null);
   const [tab, setTab] = useState<"signin" | "signup">(inviteToken ? "signup" : "signin");
+  const [areaId, setAreaId] = useState<string>("none");
+  const [areas, setAreas] = useState<Array<{ id: string; name: string; parent_id: string | null }>>([]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/dashboard" });
+    });
+    supabase.from("areas").select("id,name,parent_id").order("sort_order").then(({ data }) => {
+      if (data) setAreas(data);
     });
   }, [navigate]);
 
