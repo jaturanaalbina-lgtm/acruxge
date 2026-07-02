@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 
 export const Route = createFileRoute("/_authenticated/area/$slug/")({
   ssr: false,
@@ -65,6 +66,7 @@ function AreaPage() {
 
 function ProjectsList({ areaId, areaSlug }: { areaId: string; areaSlug: string }) {
   const qc = useQueryClient();
+  const isAdmin = useIsAdmin();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
@@ -90,20 +92,22 @@ function ProjectsList({ areaId, areaSlug }: { areaId: string; areaSlug: string }
 
   return (
     <div className="space-y-4 max-w-5xl">
-      <div className="flex justify-end">
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm"><Plus className="size-4" /> Novo projeto</Button></DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Novo projeto</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
-              <div><Label>Descrição</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
-              <div><Label>Prazo</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
-            </div>
-            <DialogFooter><Button onClick={() => create.mutate()} disabled={!name || create.isPending}>Criar</Button></DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
+      {isAdmin && (
+        <div className="flex justify-end">
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild><Button size="sm"><Plus className="size-4" /> Novo projeto</Button></DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Novo projeto</DialogTitle></DialogHeader>
+              <div className="space-y-3">
+                <div><Label>Nome</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
+                <div><Label>Descrição</Label><Textarea value={desc} onChange={(e) => setDesc(e.target.value)} /></div>
+                <div><Label>Prazo</Label><Input type="date" value={due} onChange={(e) => setDue(e.target.value)} /></div>
+              </div>
+              <DialogFooter><Button onClick={() => create.mutate()} disabled={!name || create.isPending}>Criar</Button></DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {projects.length === 0 && <p className="text-sm text-muted-foreground col-span-2">Nenhum projeto ainda.</p>}
         {projects.map((p: any) => (
