@@ -38,23 +38,9 @@ interface Task {
   project_id: string | null;
 }
 
-function useDirectory() {
-  return useQuery({
-    queryKey: ["directory"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("list_directory");
-      if (error) throw error;
-      return (data ?? []) as { id: string; full_name: string | null; avatar_url: string | null }[];
-    },
-  });
-}
-
 export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?: string | null }) {
   const qc = useQueryClient();
   const key = ["tasks", areaId, projectId ?? "area"];
-  const { data: directory = [] } = useDirectory();
-  const nameOf = (id: string | null) => directory.find((u) => u.id === id)?.full_name ?? null;
 
   const { data: tasks = [] } = useQuery({
     queryKey: key,
