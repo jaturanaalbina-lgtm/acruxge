@@ -66,6 +66,7 @@ function AreaPage() {
 
 function ProjectsList({ areaId, areaSlug }: { areaId: string; areaSlug: string }) {
   const qc = useQueryClient();
+  const isAdmin = useIsAdmin();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
