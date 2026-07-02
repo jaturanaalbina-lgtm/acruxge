@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 function Dashboard() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
-  const tasksKey = ["my-tasks", user.id];
+  const tasksKey = ["all-tasks"];
 
   const { data: tasks = [] } = useQuery({
     queryKey: tasksKey,
@@ -23,38 +23,24 @@ function Dashboard() {
       const { data } = await supabase
         .from("tasks")
         .select("id,title,status,priority,due_date,area_id,areas(slug,name)")
-        .eq("assignee_id", user.id)
         .order("due_date", { ascending: true, nullsFirst: false })
-        .limit(20);
+        .limit(50);
       return data ?? [];
     },
   });
 
   useEffect(() => {
     const channel = supabase
-      .channel(`my-tasks:${user.id}`)
+      .channel(`all-tasks`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "tasks", filter: `assignee_id=eq.${user.id}` },
-        (payload: any) => {
-          toast.success(`Nova tarefa atribuída: ${payload.new?.title ?? ""}`);
-          qc.invalidateQueries({ queryKey: tasksKey });
-        },
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "tasks", filter: `assignee_id=eq.${user.id}` },
-        () => qc.invalidateQueries({ queryKey: tasksKey }),
-      )
-      .on(
-        "postgres_changes",
-        { event: "DELETE", schema: "public", table: "tasks" },
+        { event: "*", schema: "public", table: "tasks" },
         () => qc.invalidateQueries({ queryKey: tasksKey }),
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user.id]);
+  }, []);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["recent-projects"],
@@ -76,21 +62,21 @@ function Dashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Olá, {user.user_metadata?.full_name?.split(" ")[0] ?? "equipe"} 👋</h1>
-          <p className="text-sm text-muted-foreground">Aqui está o resumo do seu trabalho hoje.</p>
+          <p className="text-sm text-muted-foreground">Visão geral das tarefas da equipe.</p>
         </div>
         <Badge variant="outline" className="gap-1"><Sparkles className="size-3" /> Acrux ROBOCEP</Badge>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard icon={ListTodo} label="Tarefas pendentes" value={pending.length} />
-        <StatCard icon={CheckCircle2} label="Concluídas (suas)" value={done} />
+        <StatCard icon={CheckCircle2} label="Concluídas" value={done} />
         <StatCard icon={FolderKanban} label="Projetos recentes" value={projects.length} />
-        <StatCard icon={Clock} label="Próximas entregas" value={pending.filter((t: any) => t.due_date).length} />
+        <StatCard icon={Clock} label="Com prazo" value={pending.filter((t: any) => t.due_date).length} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-5">
-          <h2 className="font-semibold mb-3 flex items-center gap-2"><ListTodo className="size-4" /> Minhas tarefas</h2>
+          <h2 className="font-semibold mb-3 flex items-center gap-2"><ListTodo className="size-4" /> Tarefas da equipe</h2>
           <div className="space-y-2">
             {pending.length === 0 && <p className="text-sm text-muted-foreground">Nada pendente. Bom trabalho!</p>}
             {pending.slice(0, 8).map((t: any) => (
