@@ -106,7 +106,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
             </div>
             <div className="flex-1 p-2 space-y-2 overflow-y-auto">
               {items.map((task) => (
-                <TaskCard key={task.id} task={task} assigneeName={nameOf(task.assignee_id)} onDragStart={(e) => onDragStart(e, task.id)} />
+                <TaskCard key={task.id} task={task} onDragStart={(e) => onDragStart(e, task.id)} />
               ))}
               {items.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>}
             </div>
