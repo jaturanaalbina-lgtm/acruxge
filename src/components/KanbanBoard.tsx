@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical, User } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
