@@ -62,3 +62,62 @@ export const claimAdmin = createServerFn({ method: "POST" })
 
     return { ok: true, areas: areas?.length ?? 0 };
   });
+
+async function assertCallerAdmin(context: { supabase: any; userId: string }) {
+  const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (!isAdmin) throw new Error("Apenas administradores podem executar essa ação.");
+}
+
+export const setAdminRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { user_id: string; is_admin: boolean }) => {
+    if (!data?.user_id) throw new Error("user_id obrigatório");
+    return { user_id: String(data.user_id), is_admin: Boolean(data.is_admin) };
+  })
+  .handler(async ({ data, context }) => {
+    await assertCallerAdmin(context);
+    if (data.user_id === context.userId && !data.is_admin) {
+      throw new Error("Você não pode remover o próprio papel de admin.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    if (data.is_admin) {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .upsert({ user_id: data.user_id, role: "admin" }, { onConflict: "user_id,role" });
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.user_id)
+        .eq("role", "admin");
+      if (error) throw error;
+    }
+    return { ok: true };
+  });
+
+export const removeMember = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: { user_id: string }) => {
+    if (!data?.user_id) throw new Error("user_id obrigatório");
+    return { user_id: String(data.user_id) };
+  })
+  .handler(async ({ data, context }) => {
+    await assertCallerAdmin(context);
+    if (data.user_id === context.userId) {
+      throw new Error("Você não pode remover a própria conta.");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    await supabaseAdmin.from("area_members").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("user_roles").delete().eq("user_id", data.user_id);
+    await supabaseAdmin.from("profiles").delete().eq("id", data.user_id);
+
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.user_id);
+    if (error) throw error;
+    return { ok: true };
+  });
