@@ -1,7 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { removeMember, setAdminRole } from "@/lib/admin.functions";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +14,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Users, ShieldCheck, Plus, Trash2, Settings2 } from "lucide-react";
+import { Users, ShieldCheck, ShieldOff, Plus, Trash2, Settings2, UserX } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members")({
   beforeLoad: async () => {
@@ -38,6 +44,13 @@ type Member = {
 function MembersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const removeMemberFn = useServerFn(removeMember);
+  const setAdminFn = useServerFn(setAdminRole);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   const { data: areas = [] } = useQuery({
     queryKey: ["areas"],
@@ -103,6 +116,27 @@ function MembersPage() {
     },
     onSuccess: () => {
       toast.success("Removido da área");
+      qc.invalidateQueries({ queryKey: ["admin-members"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleAdmin = useMutation({
+    mutationFn: async (p: { user_id: string; is_admin: boolean }) =>
+      setAdminFn({ data: p }),
+    onSuccess: (_r, p) => {
+      toast.success(p.is_admin ? "Promovido a admin" : "Admin removido");
+      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["sidebar-admin-info"] });
+      qc.invalidateQueries({ queryKey: ["is-admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMember = useMutation({
+    mutationFn: async (user_id: string) => removeMemberFn({ data: { user_id } }),
+    onSuccess: () => {
+      toast.success("Membro removido");
       qc.invalidateQueries({ queryKey: ["admin-members"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -187,13 +221,54 @@ function MembersPage() {
                     })}
                   </div>
                 </div>
-                <AddAreaDialog
-                  areas={areas}
-                  existing={m.memberships.map((x) => x.area_id)}
-                  onAdd={(area_id, is_leader) =>
-                    addMembership.mutate({ user_id: m.id, area_id, is_leader })
-                  }
-                />
+                <div className="flex flex-col gap-2 items-end">
+                  <AddAreaDialog
+                    areas={areas}
+                    existing={m.memberships.map((x) => x.area_id)}
+                    onAdd={(area_id, is_leader) =>
+                      addMembership.mutate({ user_id: m.id, area_id, is_leader })
+                    }
+                  />
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={m.id === currentUserId || toggleAdmin.isPending}
+                      onClick={() =>
+                        toggleAdmin.mutate({ user_id: m.id, is_admin: !m.is_admin })
+                      }
+                      title={m.is_admin ? "Remover admin" : "Tornar admin"}
+                    >
+                      {m.is_admin ? <ShieldOff className="size-3" /> : <ShieldCheck className="size-3" />}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={m.id === currentUserId}
+                          title="Remover membro"
+                        >
+                          <UserX className="size-3 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover {m.full_name ?? "membro"}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Isso apaga a conta, o perfil e todas as áreas associadas. Não pode ser desfeito.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteMember.mutate(m.id)}>
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
