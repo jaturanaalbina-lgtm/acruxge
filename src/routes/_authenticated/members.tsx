@@ -121,6 +121,27 @@ function MembersPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const toggleAdmin = useMutation({
+    mutationFn: async (p: { user_id: string; is_admin: boolean }) =>
+      setAdminFn({ data: p }),
+    onSuccess: (_r, p) => {
+      toast.success(p.is_admin ? "Promovido a admin" : "Admin removido");
+      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["sidebar-admin-info"] });
+      qc.invalidateQueries({ queryKey: ["is-admin"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteMember = useMutation({
+    mutationFn: async (user_id: string) => removeMemberFn({ data: { user_id } }),
+    onSuccess: () => {
+      toast.success("Membro removido");
+      qc.invalidateQueries({ queryKey: ["admin-members"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div className="flex items-center gap-3">
