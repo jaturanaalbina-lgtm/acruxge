@@ -221,13 +221,54 @@ function MembersPage() {
                     })}
                   </div>
                 </div>
-                <AddAreaDialog
-                  areas={areas}
-                  existing={m.memberships.map((x) => x.area_id)}
-                  onAdd={(area_id, is_leader) =>
-                    addMembership.mutate({ user_id: m.id, area_id, is_leader })
-                  }
-                />
+                <div className="flex flex-col gap-2 items-end">
+                  <AddAreaDialog
+                    areas={areas}
+                    existing={m.memberships.map((x) => x.area_id)}
+                    onAdd={(area_id, is_leader) =>
+                      addMembership.mutate({ user_id: m.id, area_id, is_leader })
+                    }
+                  />
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={m.id === currentUserId || toggleAdmin.isPending}
+                      onClick={() =>
+                        toggleAdmin.mutate({ user_id: m.id, is_admin: !m.is_admin })
+                      }
+                      title={m.is_admin ? "Remover admin" : "Tornar admin"}
+                    >
+                      {m.is_admin ? <ShieldOff className="size-3" /> : <ShieldCheck className="size-3" />}
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={m.id === currentUserId}
+                          title="Remover membro"
+                        >
+                          <UserX className="size-3 text-destructive" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover {m.full_name ?? "membro"}?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Isso apaga a conta, o perfil e todas as áreas associadas. Não pode ser desfeito.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => deleteMember.mutate(m.id)}>
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                </div>
               </li>
             ))}
           </ul>
