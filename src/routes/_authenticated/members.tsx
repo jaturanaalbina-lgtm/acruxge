@@ -44,6 +44,13 @@ type Member = {
 function MembersPage() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const removeMemberFn = useServerFn(removeMember);
+  const setAdminFn = useServerFn(setAdminRole);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setCurrentUserId(data.user?.id ?? null));
+  }, []);
 
   const { data: areas = [] } = useQuery({
     queryKey: ["areas"],
