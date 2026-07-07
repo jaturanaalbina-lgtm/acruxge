@@ -88,13 +88,6 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
-              {showSetup && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/setup"}>
-                    <Link to="/setup"><ShieldCheck /> <span>Setup admin</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
 
             </SidebarMenu>
           </SidebarGroupContent>

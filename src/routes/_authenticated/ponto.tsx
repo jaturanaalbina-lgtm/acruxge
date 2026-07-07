@@ -7,13 +7,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Play, Square, Clock, Calendar, FileText, Download, Trash2, Save } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Play, Square, Clock, Calendar, FileText, Download, Trash2, Save, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   ssr: false,
   component: PontoPage,
 });
+
+const MIN_REPORT = 10;
 
 function fmtDuration(mins: number) {
   const h = Math.floor(mins / 60);
@@ -26,6 +38,9 @@ function fmtTime(iso: string) {
 function fmtDate(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
 }
+function fmtDateLong(d: string) {
+  return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
 function PontoPage() {
   const { user } = Route.useRouteContext();
@@ -37,11 +52,21 @@ function PontoPage() {
   });
   const [filterTo, setFilterTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
+  const [stopOpen, setStopOpen] = useState(false);
+  const [stopReport, setStopReport] = useState("");
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile-min", user.id],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      return data;
+    },
+  });
 
   const { data: open } = useQuery({
     queryKey: ["time-open", user.id],
@@ -74,6 +99,16 @@ function PontoPage() {
 
   const startMut = useMutation({
     mutationFn: async () => {
+      // impede múltiplos pontos abertos
+      const { data: existing } = await supabase
+        .from("time_entries")
+        .select("id")
+        .eq("user_id", user.id)
+        .is("clock_out", null)
+        .limit(1);
+      if (existing && existing.length > 0) {
+        throw new Error("Você já tem um ponto em aberto. Encerre-o antes de iniciar outro.");
+      }
       const { error } = await supabase.from("time_entries").insert({ user_id: user.id });
       if (error) throw error;
     },
@@ -86,19 +121,21 @@ function PontoPage() {
   });
 
   const stopMut = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (report: string) => {
       if (!open) return;
       const end = new Date();
       const start = new Date(open.clock_in);
       const mins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
       const { error } = await supabase
         .from("time_entries")
-        .update({ clock_out: end.toISOString(), duration_minutes: mins })
+        .update({ clock_out: end.toISOString(), duration_minutes: mins, notes: report.trim() })
         .eq("id", open.id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Ponto encerrado");
+      toast.success("Ponto encerrado e relatório salvo");
+      setStopOpen(false);
+      setStopReport("");
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
     },
@@ -141,6 +178,21 @@ function PontoPage() {
     return Object.entries(map).sort(([a], [b]) => b.localeCompare(a));
   }, [entries]);
 
+  const openStopDialog = () => {
+    if (!open) return;
+    setStopReport("");
+    setStopOpen(true);
+  };
+
+  const confirmStop = () => {
+    const txt = stopReport.trim();
+    if (txt.length < MIN_REPORT) {
+      toast.error(`Descreva com pelo menos ${MIN_REPORT} caracteres o que foi feito.`);
+      return;
+    }
+    stopMut.mutate(txt);
+  };
+
   const exportCSV = () => {
     const header = ["Data", "Entrada", "Saída", "Duração (min)", "Atividades"];
     const rows = entries.map((e) => [
@@ -160,11 +212,93 @@ function PontoPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPDF = () => {
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const topMargin = 40; // espaço para o timbre físico
+    const leftMargin = 20;
+    const rightMargin = 20;
+
+    doc.setFont("times", "bold");
+    doc.setFontSize(14);
+    doc.text("Relatório de Ponto", pageWidth / 2, topMargin, { align: "center" });
+
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+    const nome = profile?.full_name || user.email || "—";
+    doc.text(`Colaborador: ${nome}`, leftMargin, topMargin + 8);
+    doc.text(
+      `Período: ${fmtDateLong(filterFrom)} a ${fmtDateLong(filterTo)}`,
+      leftMargin,
+      topMargin + 14,
+    );
+    doc.text(`Total de horas: ${fmtDuration(totalMin)}`, leftMargin, topMargin + 20);
+
+    const body: (string | number)[][] = [];
+    for (const [date, list] of byDate) {
+      const sorted = [...list].sort((a, b) => a.clock_in.localeCompare(b.clock_in));
+      const dayTotal = sorted.reduce((s, e) => s + (e.duration_minutes ?? 0), 0);
+      sorted.forEach((e, i) => {
+        body.push([
+          i === 0 ? fmtDateLong(date) : "",
+          fmtTime(e.clock_in),
+          e.clock_out ? fmtTime(e.clock_out) : "—",
+          e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
+          (e.notes ?? "").trim() || "—",
+        ]);
+        if (i === sorted.length - 1 && sorted.length > 1) {
+          body.push([
+            { content: `Total do dia: ${fmtDuration(dayTotal)}`, colSpan: 5, styles: { fontStyle: "italic", halign: "right", fillColor: [245, 245, 245] } } as any,
+          ] as any);
+        }
+      });
+    }
+
+    autoTable(doc, {
+      startY: topMargin + 26,
+      margin: { left: leftMargin, right: rightMargin, top: topMargin, bottom: 30 },
+      head: [["Data", "Entrada", "Saída", "Duração", "Atividades realizadas"]],
+      body,
+      styles: { font: "times", fontSize: 10, cellPadding: 2, valign: "top", textColor: 20 },
+      headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
+      columnStyles: {
+        0: { cellWidth: 28 },
+        1: { cellWidth: 18, halign: "center" },
+        2: { cellWidth: 18, halign: "center" },
+        3: { cellWidth: 20, halign: "center" },
+        4: { cellWidth: "auto" },
+      },
+      didDrawPage: () => {
+        // rodapé com assinatura na última página é adicionado após o loop
+      },
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY ?? topMargin + 30;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let sigY = finalY + 25;
+    if (sigY > pageHeight - 30) {
+      doc.addPage();
+      sigY = topMargin + 20;
+    }
+    doc.setFont("times", "normal");
+    doc.setFontSize(11);
+    const today = new Date().toLocaleDateString("pt-BR");
+    doc.text(`Emitido em ${today}`, leftMargin, sigY);
+    sigY += 20;
+    const lineW = 80;
+    doc.line(leftMargin, sigY, leftMargin + lineW, sigY);
+    doc.text("Assinatura do colaborador", leftMargin, sigY + 5);
+    doc.line(pageWidth - rightMargin - lineW, sigY, pageWidth - rightMargin, sigY);
+    doc.text("Assinatura do responsável", pageWidth - rightMargin - lineW, sigY + 5);
+
+    doc.save(`relatorio-ponto-${filterFrom}-a-${filterTo}.pdf`);
+  };
+
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Ponto</h1>
-        <p className="text-sm text-muted-foreground">Registre seu horário de trabalho e descreva o que foi feito no dia.</p>
+        <p className="text-sm text-muted-foreground">Registre seu horário de trabalho. Ao encerrar, é obrigatório descrever o que foi feito no dia.</p>
       </div>
 
       <Card className="p-6 bg-gradient-to-br from-acrux/10 to-transparent border-acrux/30">
@@ -193,7 +327,7 @@ function PontoPage() {
                 <Play /> Iniciar ponto
               </Button>
             ) : (
-              <Button size="lg" variant="destructive" onClick={() => stopMut.mutate()} disabled={stopMut.isPending}>
+              <Button size="lg" variant="destructive" onClick={openStopDialog}>
                 <Square /> Encerrar ponto
               </Button>
             )}
@@ -216,9 +350,14 @@ function PontoPage() {
               Total: <span className="font-mono ml-1">{fmtDuration(totalMin)}</span>
             </Badge>
           </div>
-          <Button variant="outline" onClick={exportCSV} disabled={entries.length === 0}>
-            <Download /> Exportar CSV
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={exportCSV} disabled={entries.length === 0}>
+              <Download /> CSV
+            </Button>
+            <Button onClick={exportPDF} disabled={entries.length === 0}>
+              <FileDown /> PDF (papel timbrado)
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -286,6 +425,46 @@ function PontoPage() {
           );
         })}
       </div>
+
+      <Dialog open={stopOpen} onOpenChange={(v) => { if (!stopMut.isPending) setStopOpen(v); }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Encerrar ponto</DialogTitle>
+            <DialogDescription>
+              {open && (
+                <>
+                  Duração: <span className="font-mono">{fmtDuration(liveMinutes)}</span> · Início {fmtTime(open.clock_in)}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Relatório do dia <span className="text-destructive">*</span></label>
+            <Textarea
+              autoFocus
+              rows={6}
+              placeholder="Descreva as atividades, reuniões e entregas realizadas neste período..."
+              value={stopReport}
+              onChange={(e) => setStopReport(e.target.value)}
+            />
+            <div className="text-xs text-muted-foreground">
+              Mínimo {MIN_REPORT} caracteres. Atual: {stopReport.trim().length}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setStopOpen(false)} disabled={stopMut.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmStop}
+              disabled={stopMut.isPending || stopReport.trim().length < MIN_REPORT}
+            >
+              <Square /> Confirmar encerramento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
