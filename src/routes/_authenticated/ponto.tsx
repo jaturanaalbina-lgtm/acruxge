@@ -440,7 +440,7 @@ function PontoPage() {
             <DialogDescription>
               {open && (
                 <>
-                  Duração: <span className="font-mono">{fmtDuration(liveMinutes)}</span> · Início {fmtTime(open.clock_in)}
+                  Duração: <span className="font-mono">{fmtHMS(liveSeconds)}</span> · Início {fmtTime(open.clock_in)}
                 </>
               )}
             </DialogDescription>
