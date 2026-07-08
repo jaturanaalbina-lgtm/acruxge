@@ -32,6 +32,12 @@ function fmtDuration(mins: number) {
   const m = mins % 60;
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
+function fmtHMS(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -165,7 +171,8 @@ function PontoPage() {
     },
   });
 
-  const liveMinutes = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 60000)) : 0;
+  const liveSeconds = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 1000)) : 0;
+  const liveMinutes = Math.floor(liveSeconds / 60);
 
   const totalMin = useMemo(
     () => entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0),
@@ -312,7 +319,7 @@ function PontoPage() {
                 {open ? "Em andamento" : "Parado"}
               </div>
               <div className="text-3xl font-mono font-semibold">
-                {open ? fmtDuration(liveMinutes) : "00h00"}
+                {open ? fmtHMS(liveSeconds) : "00:00:00"}
               </div>
               {open && (
                 <div className="text-xs text-muted-foreground">
@@ -433,7 +440,7 @@ function PontoPage() {
             <DialogDescription>
               {open && (
                 <>
-                  Duração: <span className="font-mono">{fmtDuration(liveMinutes)}</span> · Início {fmtTime(open.clock_in)}
+                  Duração: <span className="font-mono">{fmtHMS(liveSeconds)}</span> · Início {fmtTime(open.clock_in)}
                 </>
               )}
             </DialogDescription>
