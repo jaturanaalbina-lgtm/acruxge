@@ -319,7 +319,7 @@ function PontoPage() {
                 {open ? "Em andamento" : "Parado"}
               </div>
               <div className="text-3xl font-mono font-semibold">
-                {open ? fmtDuration(liveMinutes) : "00h00"}
+                {open ? fmtHMS(liveSeconds) : "00:00:00"}
               </div>
               {open && (
                 <div className="text-xs text-muted-foreground">
