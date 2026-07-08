@@ -106,20 +106,27 @@ function PontoPage() {
   const startMut = useMutation({
     mutationFn: async () => {
       // impede múltiplos pontos abertos
-      const { data: existing } = await supabase
+      const { data: existing, error: existingError } = await supabase
         .from("time_entries")
         .select("id")
         .eq("user_id", user.id)
         .is("clock_out", null)
         .limit(1);
+      if (existingError) throw existingError;
       if (existing && existing.length > 0) {
         throw new Error("Você já tem um ponto em aberto. Encerre-o antes de iniciar outro.");
       }
-      const { error } = await supabase.from("time_entries").insert({ user_id: user.id });
+      const { data, error } = await supabase
+        .from("time_entries")
+        .insert({ user_id: user.id })
+        .select("*")
+        .single();
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (entry) => {
       toast.success("Ponto iniciado");
+      qc.setQueryData(["time-open", user.id], entry);
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
     },
