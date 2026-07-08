@@ -32,6 +32,12 @@ function fmtDuration(mins: number) {
   const m = mins % 60;
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
+function fmtHMS(secs: number) {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  const s = secs % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
