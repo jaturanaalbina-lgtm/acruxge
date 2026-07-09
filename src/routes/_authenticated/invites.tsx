@@ -13,13 +13,7 @@ import { toast } from "sonner";
 import { Copy, Trash2, Mail, ShieldCheck, Clock } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/invites")({
-  beforeLoad: async () => {
-    const { redirect } = await import("@tanstack/react-router");
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) throw redirect({ to: "/auth" });
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
-    if (!isAdmin) throw redirect({ to: "/dashboard" });
-  },
+  ssr: false,
   component: InvitesPage,
 });
 
@@ -35,28 +29,35 @@ type Invite = {
   note: string | null;
 };
 
+import { useActiveOrg } from "@/contexts/active-org";
+
 function InvitesPage() {
   const qc = useQueryClient();
+  const { activeOrgId, isAdmin } = useActiveOrg();
   const [email, setEmail] = useState("");
   const [areaId, setAreaId] = useState<string>("none");
   const [isLeader, setIsLeader] = useState(false);
   const [note, setNote] = useState("");
 
   const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
+    queryKey: ["areas", activeOrgId],
+    enabled: !!activeOrgId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("areas").select("*").order("sort_order");
+      const { data, error } = await supabase.from("areas").select("*")
+        .eq("organization_id", activeOrgId!).order("sort_order");
       if (error) throw error;
       return data;
     },
   });
 
   const { data: invites = [], isLoading } = useQuery({
-    queryKey: ["invites"],
+    queryKey: ["invites", activeOrgId],
+    enabled: !!activeOrgId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("invites")
         .select("*")
+        .eq("organization_id", activeOrgId!)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data as Invite[];
@@ -67,9 +68,11 @@ function InvitesPage() {
 
   const createInvite = useMutation({
     mutationFn: async () => {
+      if (!activeOrgId) throw new Error("Nenhuma equipe ativa");
       const { data: user } = await supabase.auth.getUser();
       const { error } = await supabase.from("invites").insert({
         email,
+        organization_id: activeOrgId,
         is_leader: isLeader,
         note: note || null,
         area_id: areaId === "none" ? null : areaId,
@@ -84,6 +87,8 @@ function InvitesPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!isAdmin) return <div className="p-6 text-sm text-muted-foreground">Apenas admins podem gerenciar convites.</div>;
 
   const revoke = useMutation({
     mutationFn: async (id: string) => {

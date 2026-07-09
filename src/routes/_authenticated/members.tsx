@@ -1,9 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { removeMember, setAdminRole } from "@/lib/admin.functions";
+import { useActiveOrg } from "@/contexts/active-org";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,12 +23,7 @@ import { toast } from "sonner";
 import { Users, ShieldCheck, ShieldOff, Plus, Trash2, Settings2, UserX } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/members")({
-  beforeLoad: async () => {
-    const { data: u } = await supabase.auth.getUser();
-    if (!u.user) throw redirect({ to: "/auth" });
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: u.user.id, _role: "admin" });
-    if (!isAdmin) throw redirect({ to: "/dashboard" });
-  },
+  ssr: false,
   component: MembersPage,
 });
 
@@ -36,13 +32,14 @@ type Member = {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
-  created_at: string;
-  is_admin: boolean;
+  joined_at: string;
+  role: "owner" | "admin" | "member";
   memberships: Membership[];
 };
 
 function MembersPage() {
   const qc = useQueryClient();
+  const { activeOrgId, isAdmin } = useActiveOrg();
   const [search, setSearch] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const removeMemberFn = useServerFn(removeMember);
@@ -53,20 +50,27 @@ function MembersPage() {
   }, []);
 
   const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
+    queryKey: ["areas", activeOrgId],
+    enabled: !!activeOrgId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("areas").select("*").order("sort_order");
+      const { data, error } = await supabase.from("areas").select("*")
+        .eq("organization_id", activeOrgId!).order("sort_order");
       if (error) throw error;
       return data;
     },
   });
 
   const { data: members = [], isLoading } = useQuery({
-    queryKey: ["admin-members"],
+    queryKey: ["admin-members", activeOrgId],
+    enabled: !!activeOrgId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_list_members");
+      const { data, error } = await supabase.rpc("admin_list_members", { _org: activeOrgId! });
       if (error) throw error;
-      return (data ?? []) as Member[];
+      return (data ?? []).map((m: any) => ({
+        id: m.id, full_name: m.full_name, avatar_url: m.avatar_url,
+        joined_at: m.joined_at, role: m.role,
+        memberships: (m.memberships ?? []) as Membership[],
+      })) as Member[];
     },
   });
 
@@ -123,24 +127,27 @@ function MembersPage() {
 
   const toggleAdmin = useMutation({
     mutationFn: async (p: { user_id: string; is_admin: boolean }) =>
-      setAdminFn({ data: p }),
+      setAdminFn({ data: { ...p, organization_id: activeOrgId! } }),
     onSuccess: (_r, p) => {
       toast.success(p.is_admin ? "Promovido a admin" : "Admin removido");
       qc.invalidateQueries({ queryKey: ["admin-members"] });
-      qc.invalidateQueries({ queryKey: ["sidebar-admin-info"] });
-      qc.invalidateQueries({ queryKey: ["is-admin"] });
+      qc.invalidateQueries({ queryKey: ["my-organizations"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const deleteMember = useMutation({
-    mutationFn: async (user_id: string) => removeMemberFn({ data: { user_id } }),
+    mutationFn: async (user_id: string) =>
+      removeMemberFn({ data: { user_id, organization_id: activeOrgId! } }),
     onSuccess: () => {
-      toast.success("Membro removido");
+      toast.success("Membro removido da equipe");
       qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["my-organizations"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  if (!isAdmin) return <div className="p-6 text-sm text-muted-foreground">Apenas admins da equipe podem ver esta página.</div>;
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
@@ -179,7 +186,7 @@ function MembersPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium text-sm">{m.full_name ?? "Sem nome"}</span>
-                    {m.is_admin && <Badge variant="default">Admin</Badge>}
+                    {m.role !== "member" && <Badge variant="default">{m.role === "owner" ? "Dono" : "Admin"}</Badge>}
                     {m.memberships.length === 0 && (
                       <Badge variant="outline" className="text-muted-foreground">Sem área</Badge>
                     )}
@@ -233,13 +240,13 @@ function MembersPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={m.id === currentUserId || toggleAdmin.isPending}
+                      disabled={m.id === currentUserId || toggleAdmin.isPending || m.role === "owner"}
                       onClick={() =>
-                        toggleAdmin.mutate({ user_id: m.id, is_admin: !m.is_admin })
+                        toggleAdmin.mutate({ user_id: m.id, is_admin: m.role === "member" })
                       }
-                      title={m.is_admin ? "Remover admin" : "Tornar admin"}
+                      title={m.role !== "member" ? "Remover admin" : "Tornar admin"}
                     >
-                      {m.is_admin ? <ShieldOff className="size-3" /> : <ShieldCheck className="size-3" />}
+                      {m.role !== "member" ? <ShieldOff className="size-3" /> : <ShieldCheck className="size-3" />}
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

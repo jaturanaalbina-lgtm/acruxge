@@ -105,7 +105,8 @@ function PontoPage() {
 
   const startMut = useMutation({
     mutationFn: async () => {
-      // impede múltiplos pontos abertos
+      const orgId = typeof window !== "undefined" ? localStorage.getItem("active_org_id") : null;
+      if (!orgId) throw new Error("Selecione uma equipe antes de iniciar o ponto.");
       const { data: existing, error: existingError } = await supabase
         .from("time_entries")
         .select("id")
@@ -118,7 +119,7 @@ function PontoPage() {
       }
       const { data, error } = await supabase
         .from("time_entries")
-        .insert({ user_id: user.id })
+        .insert({ user_id: user.id, organization_id: orgId })
         .select("*")
         .single();
       if (error) throw error;
