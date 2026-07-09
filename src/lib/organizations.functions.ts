@@ -64,7 +64,9 @@ export const updateOrganization = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Apenas admins da equipe podem alterar.");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      name?: string; brand_name?: string | null; logo_url?: string | null; member_limit?: number;
+    } = {};
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.brand_name !== undefined) patch.brand_name = data.brand_name;
     if (data.logo_url !== undefined) patch.logo_url = data.logo_url;

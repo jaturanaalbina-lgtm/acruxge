@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
@@ -37,11 +36,6 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedSetupRoute = AuthenticatedSetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
-  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
   id: '/ponto',
@@ -106,7 +100,6 @@ export interface FileRoutesByFullPath {
   '/members': typeof AuthenticatedMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/ponto': typeof AuthenticatedPontoRoute
-  '/setup': typeof AuthenticatedSetupRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -121,7 +114,6 @@ export interface FileRoutesByTo {
   '/members': typeof AuthenticatedMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/ponto': typeof AuthenticatedPontoRoute
-  '/setup': typeof AuthenticatedSetupRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -138,7 +130,6 @@ export interface FileRoutesById {
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
-  '/_authenticated/setup': typeof AuthenticatedSetupRoute
   '/_authenticated/org/new': typeof AuthenticatedOrgNewRoute
   '/_authenticated/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
@@ -155,7 +146,6 @@ export interface FileRouteTypes {
     | '/members'
     | '/onboarding'
     | '/ponto'
-    | '/setup'
     | '/org/new'
     | '/org/settings'
     | '/social/content'
@@ -170,7 +160,6 @@ export interface FileRouteTypes {
     | '/members'
     | '/onboarding'
     | '/ponto'
-    | '/setup'
     | '/org/new'
     | '/org/settings'
     | '/social/content'
@@ -186,7 +175,6 @@ export interface FileRouteTypes {
     | '/_authenticated/members'
     | '/_authenticated/onboarding'
     | '/_authenticated/ponto'
-    | '/_authenticated/setup'
     | '/_authenticated/org/new'
     | '/_authenticated/org/settings'
     | '/_authenticated/social/content'
@@ -222,13 +210,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/setup': {
-      id: '/_authenticated/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof AuthenticatedSetupRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/ponto': {
       id: '/_authenticated/ponto'
@@ -309,7 +290,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
-  AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
   AuthenticatedOrgNewRoute: typeof AuthenticatedOrgNewRoute
   AuthenticatedOrgSettingsRoute: typeof AuthenticatedOrgSettingsRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
@@ -323,7 +303,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
-  AuthenticatedSetupRoute: AuthenticatedSetupRoute,
   AuthenticatedOrgNewRoute: AuthenticatedOrgNewRoute,
   AuthenticatedOrgSettingsRoute: AuthenticatedOrgSettingsRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
