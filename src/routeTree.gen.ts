@@ -14,10 +14,13 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedSetupRouteImport } from './routes/_authenticated/setup'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
+import { Route as AuthenticatedOrgSettingsRouteImport } from './routes/_authenticated/org.settings'
+import { Route as AuthenticatedOrgNewRouteImport } from './routes/_authenticated/org.new'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
 import { Route as AuthenticatedAreaSlugProjectIdRouteImport } from './routes/_authenticated/area.$slug.project.$id'
 
@@ -45,6 +48,11 @@ const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
   path: '/ponto',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
   id: '/members',
   path: '/members',
@@ -66,6 +74,17 @@ const AuthenticatedSocialContentRoute =
     path: '/social/content',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOrgSettingsRoute =
+  AuthenticatedOrgSettingsRouteImport.update({
+    id: '/org/settings',
+    path: '/org/settings',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOrgNewRoute = AuthenticatedOrgNewRouteImport.update({
+  id: '/org/new',
+  path: '/org/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAreaSlugIndexRoute =
   AuthenticatedAreaSlugIndexRouteImport.update({
     id: '/area/$slug/',
@@ -85,8 +104,11 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/org/new': typeof AuthenticatedOrgNewRoute
+  '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
   '/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -97,8 +119,11 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/setup': typeof AuthenticatedSetupRoute
+  '/org/new': typeof AuthenticatedOrgNewRoute
+  '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
   '/area/$slug': typeof AuthenticatedAreaSlugIndexRoute
   '/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -111,8 +136,11 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/invites': typeof AuthenticatedInvitesRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/setup': typeof AuthenticatedSetupRoute
+  '/_authenticated/org/new': typeof AuthenticatedOrgNewRoute
+  '/_authenticated/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
   '/_authenticated/area/$slug/': typeof AuthenticatedAreaSlugIndexRoute
   '/_authenticated/area/$slug/project/$id': typeof AuthenticatedAreaSlugProjectIdRoute
@@ -125,8 +153,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invites'
     | '/members'
+    | '/onboarding'
     | '/ponto'
     | '/setup'
+    | '/org/new'
+    | '/org/settings'
     | '/social/content'
     | '/area/$slug/'
     | '/area/$slug/project/$id'
@@ -137,8 +168,11 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invites'
     | '/members'
+    | '/onboarding'
     | '/ponto'
     | '/setup'
+    | '/org/new'
+    | '/org/settings'
     | '/social/content'
     | '/area/$slug'
     | '/area/$slug/project/$id'
@@ -150,8 +184,11 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/invites'
     | '/_authenticated/members'
+    | '/_authenticated/onboarding'
     | '/_authenticated/ponto'
     | '/_authenticated/setup'
+    | '/_authenticated/org/new'
+    | '/_authenticated/org/settings'
     | '/_authenticated/social/content'
     | '/_authenticated/area/$slug/'
     | '/_authenticated/area/$slug/project/$id'
@@ -200,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPontoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/members': {
       id: '/_authenticated/members'
       path: '/members'
@@ -228,6 +272,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSocialContentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/org/settings': {
+      id: '/_authenticated/org/settings'
+      path: '/org/settings'
+      fullPath: '/org/settings'
+      preLoaderRoute: typeof AuthenticatedOrgSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/org/new': {
+      id: '/_authenticated/org/new'
+      path: '/org/new'
+      fullPath: '/org/new'
+      preLoaderRoute: typeof AuthenticatedOrgNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/area/$slug/': {
       id: '/_authenticated/area/$slug/'
       path: '/area/$slug'
@@ -249,8 +307,11 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedSetupRoute: typeof AuthenticatedSetupRoute
+  AuthenticatedOrgNewRoute: typeof AuthenticatedOrgNewRoute
+  AuthenticatedOrgSettingsRoute: typeof AuthenticatedOrgSettingsRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
   AuthenticatedAreaSlugIndexRoute: typeof AuthenticatedAreaSlugIndexRoute
   AuthenticatedAreaSlugProjectIdRoute: typeof AuthenticatedAreaSlugProjectIdRoute
@@ -260,8 +321,11 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedSetupRoute: AuthenticatedSetupRoute,
+  AuthenticatedOrgNewRoute: AuthenticatedOrgNewRoute,
+  AuthenticatedOrgSettingsRoute: AuthenticatedOrgSettingsRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
   AuthenticatedAreaSlugIndexRoute: AuthenticatedAreaSlugIndexRoute,
   AuthenticatedAreaSlugProjectIdRoute: AuthenticatedAreaSlugProjectIdRoute,
