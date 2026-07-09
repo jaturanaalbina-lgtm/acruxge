@@ -154,8 +154,12 @@ export function NewTaskButton({ areaId, projectId, status = "backlog", compact =
   const create = useMutation({
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
+      const { data: area, error: areaErr } = await supabase
+        .from("areas").select("organization_id").eq("id", areaId).single();
+      if (areaErr) throw areaErr;
       const { error } = await supabase.from("tasks").insert({
-        area_id: areaId, project_id: projectId ?? null, title, description: description || null,
+        area_id: areaId, organization_id: area.organization_id,
+        project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
         created_by: u.user?.id, assignee_id: null,

@@ -6,46 +6,30 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { Cpu, LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, ShieldCheck, Clock } from "lucide-react";
+import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useActiveOrg } from "@/contexts/active-org";
+import { OrgSwitcher } from "@/components/OrgSwitcher";
 
 const ICONS: Record<string, any> = { social: Users, engenharia: Wrench, programacao: Code, marketing: Megaphone };
 
 export function AppSidebar() {
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { activeOrgId, isAdmin } = useActiveOrg();
 
   const { data: areas = [] } = useQuery({
-    queryKey: ["areas"],
+    queryKey: ["areas", activeOrgId],
+    enabled: !!activeOrgId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("areas").select("*").order("sort_order");
+      const { data, error } = await supabase.from("areas").select("*")
+        .eq("organization_id", activeOrgId!).order("sort_order");
       if (error) throw error;
       return data;
     },
   });
 
-  const { data: adminInfo } = useQuery({
-    queryKey: ["sidebar-admin-info"],
-    queryFn: async () => {
-      const { data: u } = await supabase.auth.getUser();
-      const uid = u.user?.id;
-      let isAdmin = false;
-      if (uid) {
-        const { data } = await supabase.rpc("has_role", { _user_id: uid, _role: "admin" });
-        isAdmin = Boolean(data);
-      }
-      const { count } = await supabase
-        .from("user_roles")
-        .select("*", { count: "exact", head: true })
-        .eq("role", "admin");
-      return { isAdmin, anyAdmin: (count ?? 0) > 0 };
-    },
-  });
-  const isAdmin = adminInfo?.isAdmin ?? false;
-  const showSetup = isAdmin || !(adminInfo?.anyAdmin ?? true);
-
   const parents = areas.filter((a) => !a.parent_id);
-
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -55,15 +39,11 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
-        <div className="flex items-center gap-2 px-2 py-2">
-          <div className="size-8 rounded-md bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center">
-            <Cpu className="size-4 text-white" />
-          </div>
-          <div className="group-data-[collapsible=icon]:hidden">
-            <div className="text-sm font-semibold leading-tight">Acrux ROBOCEP</div>
-            <div className="text-[10px] text-muted-foreground">Gestão interna</div>
-          </div>
-        </div>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <OrgSwitcher />
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
 
       <SidebarContent>
@@ -82,13 +62,19 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === "/members"}>
-                    <Link to="/members"><Users /> <span>Membros</span></Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/members"}>
+                      <Link to="/members"><Users /> <span>Membros</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/invites"}>
+                      <Link to="/invites"><Mail /> <span>Convites</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
               )}
-
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -97,6 +83,11 @@ export function AppSidebar() {
           <SidebarGroupLabel>Áreas</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {parents.length === 0 && (
+                <div className="px-2 py-1 text-[11px] text-muted-foreground group-data-[collapsible=icon]:hidden">
+                  Nenhuma área ainda.
+                </div>
+              )}
               {parents.map((area) => {
                 const Icon = ICONS[area.slug] ?? FolderKanban;
                 const children = areas.filter((a) => a.parent_id === area.id);
