@@ -83,7 +83,13 @@ function ProjectsList({ areaId, areaSlug }: { areaId: string; areaSlug: string }
   const create = useMutation({
     mutationFn: async () => {
       const { data: u } = await supabase.auth.getUser();
-      const { error } = await supabase.from("projects").insert({ area_id: areaId, name, description: desc || null, due_date: due || null, created_by: u.user?.id });
+      const { data: area, error: aErr } = await supabase
+        .from("areas").select("organization_id").eq("id", areaId).single();
+      if (aErr) throw aErr;
+      const { error } = await supabase.from("projects").insert({
+        area_id: areaId, organization_id: area.organization_id,
+        name, description: desc || null, due_date: due || null, created_by: u.user?.id,
+      });
       if (error) throw error;
     },
     onSuccess: () => { toast.success("Projeto criado"); qc.invalidateQueries({ queryKey: ["projects", areaId] }); setOpen(false); setName(""); setDesc(""); setDue(""); },

@@ -178,8 +178,12 @@ function NewPostDialog({ areaId }: { areaId: string }) {
 
   const create = useMutation({
     mutationFn: async () => {
+      const { data: area, error: aErr } = await supabase
+        .from("areas").select("organization_id").eq("id", areaId).single();
+      if (aErr) throw aErr;
       const { error } = await supabase.from("content_posts").insert({
-        area_id: areaId, post_date: postDate, title, post_type: type || null, community: community || null, status, notes: notes || null,
+        area_id: areaId, organization_id: area.organization_id,
+        post_date: postDate, title, post_type: type || null, community: community || null, status, notes: notes || null,
       });
       if (error) throw error;
     },
