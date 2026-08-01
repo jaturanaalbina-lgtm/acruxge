@@ -139,15 +139,33 @@ function PontoPage() {
 
   const stopMut = useMutation({
     mutationFn: async (report: string) => {
-      if (!open) return;
-      const end = new Date();
-      const start = new Date(open.clock_in);
-      const mins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
-      const { error } = await supabase
+      const { data: openList, error: listError } = await supabase
         .from("time_entries")
-        .update({ clock_out: end.toISOString(), duration_minutes: mins, notes: report.trim() })
-        .eq("id", open.id);
-      if (error) throw error;
+        .select("id, clock_in")
+        .eq("user_id", user.id)
+        .is("clock_out", null);
+      if (listError) throw listError;
+      if (!openList || openList.length === 0) throw new Error("Nenhum ponto em aberto.");
+
+      const end = new Date();
+      for (const entry of openList) {
+        const start = new Date(entry.clock_in);
+        const realMins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+        const capped = Math.min(realMins, MAX_SESSION_MINUTES);
+        const clockOut =
+          capped < realMins
+            ? new Date(start.getTime() + capped * 60000).toISOString()
+            : end.toISOString();
+        const notes =
+          capped < realMins
+            ? `${report.trim()} [encerrado automaticamente: jornada limitada a ${MAX_SESSION_MINUTES / 60}h]`
+            : report.trim();
+        const { error } = await supabase
+          .from("time_entries")
+          .update({ clock_out: clockOut, duration_minutes: capped, notes })
+          .eq("id", entry.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Ponto encerrado e relatório salvo");
