@@ -71,6 +71,17 @@ export function ActiveOrgProvider({ children }: { children: ReactNode }) {
   }, [noOrgs, onOpenRoute, navigate]);
 
   const activeOrg = orgs.find((o) => o.id === activeId) ?? null;
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (activeOrg?.primary_color) root.style.setProperty("--acrux", activeOrg.primary_color);
+    else root.style.removeProperty("--acrux");
+    if (activeOrg?.accent_color) root.style.setProperty("--acrux-glow", activeOrg.accent_color);
+    else root.style.removeProperty("--acrux-glow");
+  }, [activeOrg?.primary_color, activeOrg?.accent_color]);
+
+
   return (
     <ActiveOrgContext.Provider
       value={{
