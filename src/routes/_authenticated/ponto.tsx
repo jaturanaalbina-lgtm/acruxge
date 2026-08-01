@@ -26,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/ponto")({
 });
 
 const MIN_REPORT = 10;
+const MAX_SESSION_MINUTES = 12 * 60; // jornada máxima contabilizada
 
 function fmtDuration(mins: number) {
   const h = Math.floor(mins / 60);
@@ -33,10 +34,12 @@ function fmtDuration(mins: number) {
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
 function fmtHMS(secs: number) {
-  const h = Math.floor(secs / 3600);
+  const d = Math.floor(secs / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const base = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return d > 0 ? `${d}d ${base}` : base;
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -136,20 +139,39 @@ function PontoPage() {
 
   const stopMut = useMutation({
     mutationFn: async (report: string) => {
-      if (!open) return;
-      const end = new Date();
-      const start = new Date(open.clock_in);
-      const mins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
-      const { error } = await supabase
+      const { data: openList, error: listError } = await supabase
         .from("time_entries")
-        .update({ clock_out: end.toISOString(), duration_minutes: mins, notes: report.trim() })
-        .eq("id", open.id);
-      if (error) throw error;
+        .select("id, clock_in")
+        .eq("user_id", user.id)
+        .is("clock_out", null);
+      if (listError) throw listError;
+      if (!openList || openList.length === 0) throw new Error("Nenhum ponto em aberto.");
+
+      const end = new Date();
+      for (const entry of openList) {
+        const start = new Date(entry.clock_in);
+        const realMins = Math.max(1, Math.round((end.getTime() - start.getTime()) / 60000));
+        const capped = Math.min(realMins, MAX_SESSION_MINUTES);
+        const clockOut =
+          capped < realMins
+            ? new Date(start.getTime() + capped * 60000).toISOString()
+            : end.toISOString();
+        const notes =
+          capped < realMins
+            ? `${report.trim()} [encerrado automaticamente: jornada limitada a ${MAX_SESSION_MINUTES / 60}h]`
+            : report.trim();
+        const { error } = await supabase
+          .from("time_entries")
+          .update({ clock_out: clockOut, duration_minutes: capped, notes })
+          .eq("id", entry.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Ponto encerrado e relatório salvo");
       setStopOpen(false);
       setStopReport("");
+      qc.setQueryData(["time-open", user.id], null);
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
     },
@@ -332,6 +354,11 @@ function PontoPage() {
               {open && (
                 <div className="text-xs text-muted-foreground">
                   Iniciado às {fmtTime(open.clock_in)}
+                </div>
+              )}
+              {open && liveMinutes > MAX_SESSION_MINUTES && (
+                <div className="text-xs text-destructive">
+                  Jornada acima de {MAX_SESSION_MINUTES / 60}h — será contabilizada no limite ao encerrar.
                 </div>
               )}
             </div>
