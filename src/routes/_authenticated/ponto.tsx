@@ -26,6 +26,7 @@ export const Route = createFileRoute("/_authenticated/ponto")({
 });
 
 const MIN_REPORT = 10;
+const MAX_SESSION_MINUTES = 12 * 60; // jornada máxima contabilizada
 
 function fmtDuration(mins: number) {
   const h = Math.floor(mins / 60);
@@ -33,10 +34,12 @@ function fmtDuration(mins: number) {
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
 function fmtHMS(secs: number) {
-  const h = Math.floor(secs / 3600);
+  const d = Math.floor(secs / 86400);
+  const h = Math.floor((secs % 86400) / 3600);
   const m = Math.floor((secs % 3600) / 60);
   const s = secs % 60;
-  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  const base = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  return d > 0 ? `${d}d ${base}` : base;
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
