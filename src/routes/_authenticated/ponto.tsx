@@ -356,6 +356,11 @@ function PontoPage() {
                   Iniciado às {fmtTime(open.clock_in)}
                 </div>
               )}
+              {open && liveMinutes > MAX_SESSION_MINUTES && (
+                <div className="text-xs text-destructive">
+                  Jornada acima de {MAX_SESSION_MINUTES / 60}h — será contabilizada no limite ao encerrar.
+                </div>
+              )}
             </div>
           </div>
           <div className="flex gap-2">
