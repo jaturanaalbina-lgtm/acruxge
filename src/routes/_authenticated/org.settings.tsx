@@ -4,6 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { useActiveOrg } from "@/contexts/active-org";
 import { updateOrganization } from "@/lib/organizations.functions";
+import { OrgBrandForm, DEFAULT_BRAND, type OrgBrand } from "@/components/OrgBrandForm";
+import { OrgShareLink } from "@/components/OrgShareLink";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,30 +23,38 @@ function OrgSettingsPage() {
   const qc = useQueryClient();
   const updateFn = useServerFn(updateOrganization);
 
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
-  const [logo, setLogo] = useState("");
+  const [brand, setBrand] = useState<OrgBrand>(DEFAULT_BRAND);
   const [limit, setLimit] = useState<number>(10);
+  const [joinEnabled, setJoinEnabled] = useState(true);
 
   useEffect(() => {
     if (activeOrg) {
-      setName(activeOrg.name);
-      setBrand(activeOrg.brand_name ?? "");
-      setLogo(activeOrg.logo_url ?? "");
+      setBrand({
+        name: activeOrg.name,
+        brand_name: activeOrg.brand_name ?? "",
+        logo_url: activeOrg.logo_url ?? "",
+        primary_color: activeOrg.primary_color ?? DEFAULT_BRAND.primary_color,
+        accent_color: activeOrg.accent_color ?? DEFAULT_BRAND.accent_color,
+      });
       setLimit(activeOrg.member_limit);
+      setJoinEnabled(activeOrg.join_enabled ?? true);
     }
   }, [activeOrg]);
 
   const save = useMutation({
-    mutationFn: async () => updateFn({
-      data: {
-        organization_id: activeOrg!.id,
-        name,
-        brand_name: brand || null,
-        logo_url: logo || null,
-        member_limit: limit,
-      },
-    }),
+    mutationFn: async (patch?: { join_enabled?: boolean }) =>
+      updateFn({
+        data: {
+          organization_id: activeOrg!.id,
+          name: brand.name,
+          brand_name: brand.brand_name || null,
+          logo_url: brand.logo_url || null,
+          member_limit: limit,
+          primary_color: brand.primary_color,
+          accent_color: brand.accent_color,
+          join_enabled: patch?.join_enabled ?? joinEnabled,
+        },
+      }),
     onSuccess: async () => {
       toast.success("Equipe atualizada");
       await qc.invalidateQueries({ queryKey: ["my-organizations"] });
@@ -66,23 +76,20 @@ function OrgSettingsPage() {
       </div>
 
       <Card className="p-6 space-y-4">
-        <div>
-          <Label>Nome</Label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} />
-        </div>
-        <div>
-          <Label>Nome no papel timbrado (PDF de ponto)</Label>
-          <Input value={brand} onChange={(e) => setBrand(e.target.value)} />
-        </div>
-        <div>
-          <Label>URL do logo (opcional)</Label>
-          <Input value={logo} onChange={(e) => setLogo(e.target.value)} placeholder="https://…" />
-        </div>
+        <OrgShareLink
+          slug={activeOrg.slug}
+          joinEnabled={joinEnabled}
+          onToggleJoin={(v) => { setJoinEnabled(v); save.mutate({ join_enabled: v }); }}
+        />
+      </Card>
+
+      <Card className="p-6 space-y-5">
+        <OrgBrandForm value={brand} onChange={setBrand} />
         <div>
           <Label>Limite de membros</Label>
           <Input type="number" min={1} value={limit} onChange={(e) => setLimit(Number(e.target.value) || 1)} />
         </div>
-        <Button onClick={() => save.mutate()} disabled={save.isPending}>Salvar</Button>
+        <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Salvar</Button>
       </Card>
     </div>
   );

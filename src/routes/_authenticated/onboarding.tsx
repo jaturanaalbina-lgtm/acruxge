@@ -4,10 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { createOrganization } from "@/lib/organizations.functions";
+import { OrgBrandForm, DEFAULT_BRAND, type OrgBrand } from "@/components/OrgBrandForm";
+import { OrgShareLink } from "@/components/OrgShareLink";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Building2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
@@ -20,8 +20,8 @@ function OnboardingPage() {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const createOrg = useServerFn(createOrganization);
-  const [name, setName] = useState("");
-  const [brand, setBrand] = useState("");
+  const [brand, setBrand] = useState<OrgBrand>(DEFAULT_BRAND);
+  const [createdSlug, setCreatedSlug] = useState<string | null>(null);
 
   const { data: orgs = [] } = useQuery({
     queryKey: ["my-organizations"],
@@ -33,16 +33,25 @@ function OnboardingPage() {
 
   // Se o usuário já tem equipe(s), pula para o dashboard.
   useEffect(() => {
-    if (orgs.length > 0) navigate({ to: "/dashboard" });
-  }, [orgs, navigate]);
+    if (orgs.length > 0 && !createdSlug) navigate({ to: "/dashboard" });
+  }, [orgs, navigate, createdSlug]);
 
   const create = useMutation({
-    mutationFn: async () => createOrg({ data: { name, brand_name: brand || name } }),
+    mutationFn: async () =>
+      createOrg({
+        data: {
+          name: brand.name,
+          brand_name: brand.brand_name || brand.name,
+          logo_url: brand.logo_url || null,
+          primary_color: brand.primary_color,
+          accent_color: brand.accent_color,
+        },
+      }),
     onSuccess: async (org: any) => {
       toast.success(`Equipe "${org.name}" criada!`);
       if (typeof window !== "undefined") localStorage.setItem("active_org_id", org.id);
+      setCreatedSlug(org.slug);
       await qc.invalidateQueries({ queryKey: ["my-organizations"] });
-      navigate({ to: "/dashboard" });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -54,38 +63,41 @@ function OnboardingPage() {
           <div className="mx-auto size-14 rounded-2xl bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center">
             <Sparkles className="size-7 text-white" />
           </div>
-          <h1 className="text-2xl font-semibold">Bem-vindo!</h1>
+          <h1 className="text-2xl font-semibold">{createdSlug ? "Equipe criada!" : "Bem-vindo!"}</h1>
           <p className="text-sm text-muted-foreground">
-            Crie o painel da sua equipe para começar a organizar áreas, projetos, tarefas e ponto.
+            {createdSlug
+              ? "Compartilhe o link abaixo com os membros da sua equipe."
+              : "Crie o painel da sua equipe para começar a organizar áreas, projetos, tarefas e ponto."}
           </p>
         </div>
 
-        <Card className="p-6 space-y-4">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <Building2 className="size-4" /> Criar nova equipe
-          </div>
-          <div>
-            <Label>Nome da equipe</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex.: Acrux ROBOCEP" />
-          </div>
-          <div>
-            <Label>Nome no papel timbrado (opcional)</Label>
-            <Input value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Como aparece no cabeçalho do PDF" />
-            <p className="text-xs text-muted-foreground mt-1">Deixe vazio para usar o mesmo nome.</p>
-          </div>
-          <Button
-            className="w-full"
-            disabled={name.trim().length < 2 || create.isPending}
-            onClick={() => create.mutate()}
-          >
-            Criar equipe
-          </Button>
-        </Card>
+        {createdSlug ? (
+          <Card className="p-6 space-y-4">
+            <OrgShareLink slug={createdSlug} />
+            <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Ir para o painel</Button>
+          </Card>
+        ) : (
+          <Card className="p-6 space-y-5">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Building2 className="size-4" /> Criar nova equipe
+            </div>
+            <OrgBrandForm value={brand} onChange={setBrand} />
+            <Button
+              className="w-full"
+              disabled={brand.name.trim().length < 2 || create.isPending}
+              onClick={() => create.mutate()}
+            >
+              Criar equipe
+            </Button>
+          </Card>
+        )}
 
-        <p className="text-center text-xs text-muted-foreground">
-          Foi convidado para uma equipe existente? Peça para reenviarem o link do convite.
-          {" "}<Link to="/auth" className="underline">Sair</Link>
-        </p>
+        {!createdSlug && (
+          <p className="text-center text-xs text-muted-foreground">
+            Foi convidado para uma equipe existente? Peça o link de entrada para o criador ou um admin.
+            {" "}<Link to="/auth" className="underline">Sair</Link>
+          </p>
+        )}
       </div>
     </div>
   );

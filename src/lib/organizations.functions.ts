@@ -11,15 +11,29 @@ function slugify(input: string) {
     .slice(0, 60);
 }
 
+const HEX = /^#[0-9a-fA-F]{6}$/;
+function color(v: unknown, fallback: string) {
+  const s = String(v ?? "").trim();
+  return HEX.test(s) ? s : fallback;
+}
+
 export const createOrganization = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data: { name: string; slug?: string; brand_name?: string }) => {
+  .inputValidator((data: {
+    name: string; slug?: string; brand_name?: string;
+    logo_url?: string | null; primary_color?: string; accent_color?: string;
+  }) => {
     const name = String(data?.name ?? "").trim();
     if (name.length < 2) throw new Error("Nome muito curto");
+    const logo = (data.logo_url ?? "").trim();
+    if (logo.length > 400_000) throw new Error("Logo muito grande");
     return {
       name,
       slug: slugify(data.slug || data.name),
       brand_name: data.brand_name?.trim() || name,
+      logo_url: logo || null,
+      primary_color: color(data.primary_color, "#8B5CF6"),
+      accent_color: color(data.accent_color, "#A78BFA"),
     };
   })
   .handler(async ({ data, context }) => {
@@ -41,6 +55,9 @@ export const createOrganization = createServerFn({ method: "POST" })
         name: data.name,
         slug: candidate,
         brand_name: data.brand_name,
+        logo_url: data.logo_url,
+        primary_color: data.primary_color,
+        accent_color: data.accent_color,
         created_by: context.userId,
       })
       .select("*")
@@ -57,6 +74,9 @@ export const updateOrganization = createServerFn({ method: "POST" })
     brand_name?: string | null;
     logo_url?: string | null;
     member_limit?: number;
+    primary_color?: string;
+    accent_color?: string;
+    join_enabled?: boolean;
   }) => data)
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("is_org_admin", {
@@ -66,16 +86,24 @@ export const updateOrganization = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const patch: {
       name?: string; brand_name?: string | null; logo_url?: string | null; member_limit?: number;
+      primary_color?: string; accent_color?: string; join_enabled?: boolean;
     } = {};
     if (data.name !== undefined) patch.name = data.name.trim();
     if (data.brand_name !== undefined) patch.brand_name = data.brand_name;
-    if (data.logo_url !== undefined) patch.logo_url = data.logo_url;
+    if (data.logo_url !== undefined) {
+      if ((data.logo_url ?? "").length > 400_000) throw new Error("Logo muito grande");
+      patch.logo_url = data.logo_url;
+    }
     if (data.member_limit !== undefined) patch.member_limit = data.member_limit;
+    if (data.primary_color !== undefined) patch.primary_color = color(data.primary_color, "#8B5CF6");
+    if (data.accent_color !== undefined) patch.accent_color = color(data.accent_color, "#A78BFA");
+    if (data.join_enabled !== undefined) patch.join_enabled = data.join_enabled;
     const { error } = await supabaseAdmin
       .from("organizations").update(patch).eq("id", data.organization_id);
     if (error) throw error;
     return { ok: true };
   });
+
 
 export const setOrgRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

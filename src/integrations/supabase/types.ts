@@ -248,35 +248,44 @@ export type Database = {
       }
       organizations: {
         Row: {
+          accent_color: string
           brand_name: string | null
           created_at: string
           created_by: string | null
           id: string
+          join_enabled: boolean
           logo_url: string | null
           member_limit: number
           name: string
+          primary_color: string
           slug: string
           updated_at: string
         }
         Insert: {
+          accent_color?: string
           brand_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          join_enabled?: boolean
           logo_url?: string | null
           member_limit?: number
           name: string
+          primary_color?: string
           slug: string
           updated_at?: string
         }
         Update: {
+          accent_color?: string
           brand_name?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          join_enabled?: boolean
           logo_url?: string | null
           member_limit?: number
           name?: string
+          primary_color?: string
           slug?: string
           updated_at?: string
         }
@@ -572,6 +581,18 @@ export type Database = {
           used_at: string
         }[]
       }
+      get_org_public: {
+        Args: { _slug: string }
+        Returns: {
+          accent_color: string
+          brand_name: string
+          id: string
+          join_enabled: boolean
+          logo_url: string
+          name: string
+          primary_color: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -588,6 +609,7 @@ export type Database = {
       is_org_admin: { Args: { _org: string; _user: string }; Returns: boolean }
       is_org_member: { Args: { _org: string; _user: string }; Returns: boolean }
       is_org_owner: { Args: { _org: string; _user: string }; Returns: boolean }
+      join_org_by_slug: { Args: { _slug: string }; Returns: string }
       list_directory: {
         Args: { _org: string }
         Returns: {
@@ -599,12 +621,15 @@ export type Database = {
       my_organizations: {
         Args: never
         Returns: {
+          accent_color: string
           brand_name: string
           id: string
+          join_enabled: boolean
           logo_url: string
           member_count: number
           member_limit: number
           name: string
+          primary_color: string
           role: Database["public"]["Enums"]["org_role"]
           slug: string
         }[]
