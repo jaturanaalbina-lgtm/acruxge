@@ -12,7 +12,11 @@ export type Organization = {
   role: "owner" | "admin" | "member";
   member_count: number;
   member_limit: number;
+  primary_color: string | null;
+  accent_color: string | null;
+  join_enabled: boolean | null;
 };
+
 
 type Ctx = {
   orgs: Organization[];
