@@ -171,6 +171,7 @@ function PontoPage() {
       toast.success("Ponto encerrado e relatório salvo");
       setStopOpen(false);
       setStopReport("");
+      qc.setQueryData(["time-open", user.id], null);
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
     },
