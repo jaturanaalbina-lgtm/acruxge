@@ -21,15 +21,24 @@ async function handleGoogle() {
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (s: Record<string, unknown>) => ({ invite: typeof s.invite === "string" ? s.invite : undefined }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    invite: typeof s.invite === "string" ? s.invite : undefined,
+    org: typeof s.org === "string" ? s.org : undefined,
+  }),
   component: AuthPage,
 });
+
+type OrgPublic = {
+  id: string; name: string; brand_name: string | null; logo_url: string | null;
+  primary_color: string | null; accent_color: string | null; join_enabled: boolean;
+};
 
 type InviteInfo = { email: string; area_name: string | null; is_leader: boolean; used_at: string | null; expires_at: string };
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { invite: inviteToken } = Route.useSearch();
+  const { invite: inviteToken, org: orgSlug } = Route.useSearch();
+  const [org, setOrg] = useState<OrgPublic | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -40,13 +49,31 @@ function AuthPage() {
   const [areas, setAreas] = useState<Array<{ id: string; name: string; parent_id: string | null }>>([]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) return;
+      if (orgSlug) {
+        await supabase.rpc("join_org_by_slug", { _slug: orgSlug });
+      }
+      navigate({ to: "/dashboard" });
     });
     supabase.from("areas").select("id,name,parent_id").order("sort_order").then(({ data }) => {
       if (data) setAreas(data);
     });
-  }, [navigate]);
+  }, [navigate, orgSlug]);
+
+  useEffect(() => {
+    if (!orgSlug) return;
+    supabase.rpc("get_org_public", { _slug: orgSlug }).then(({ data }) => {
+      const row = (data ?? [])[0] as OrgPublic | undefined;
+      if (!row) { toast.error("Equipe não encontrada para este link."); return; }
+      setOrg(row);
+      setTab("signup");
+      if (typeof document !== "undefined") {
+        if (row.primary_color) document.documentElement.style.setProperty("--acrux", row.primary_color);
+        if (row.accent_color) document.documentElement.style.setProperty("--acrux-glow", row.accent_color);
+      }
+    });
+  }, [orgSlug]);
 
   useEffect(() => {
     if (!inviteToken) return;
@@ -71,6 +98,10 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    if (orgSlug) {
+      const { error: joinError } = await supabase.rpc("join_org_by_slug", { _slug: orgSlug });
+      if (joinError) toast.error(joinError.message);
+    }
     toast.success("Bem-vindo(a) de volta!");
     navigate({ to: "/dashboard" });
   };
@@ -85,6 +116,7 @@ function AuthPage() {
         data: {
           full_name: fullName,
           area_id: !inviteInfo && areaId !== "none" ? areaId : undefined,
+          org_slug: orgSlug || undefined,
         },
       },
     });
@@ -98,15 +130,29 @@ function AuthPage() {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--acrux-glow)_25%,transparent),transparent_60%)]" />
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="size-10 rounded-lg bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center shadow-lg shadow-acrux/40">
-            <Cpu className="size-5 text-white" />
+          <div className="size-10 rounded-lg bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center shadow-lg shadow-acrux/40 overflow-hidden">
+            {org?.logo_url
+              ? <img src={org.logo_url} alt={`Logo ${org.name}`} className="size-full object-cover" />
+              : <Cpu className="size-5 text-white" />}
           </div>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Acrux ROBOCEP</h1>
-            <p className="text-xs text-muted-foreground">Gestão interna da equipe</p>
+            <h1 className="text-lg font-semibold tracking-tight">{org?.name ?? "Painel de Equipe"}</h1>
+            <p className="text-xs text-muted-foreground">
+              {org ? "Entre para acessar o painel da equipe" : "Gestão interna da equipe"}
+            </p>
           </div>
         </div>
         <Card className="glass-panel p-6">
+          {org && (
+            <div className="mb-4 rounded-md border border-acrux/40 bg-acrux/5 p-3 text-xs">
+              <div className="font-medium text-foreground">Convite para {org.name}</div>
+              <div className="text-muted-foreground mt-0.5">
+                {org.join_enabled
+                  ? "Ao criar sua conta (ou entrar) você será adicionado a esta equipe."
+                  : "Esta equipe não está aceitando novas entradas pelo link no momento."}
+              </div>
+            </div>
+          )}
           {inviteInfo && (
             <div className="mb-4 rounded-md border border-acrux/40 bg-acrux/5 p-3 text-xs">
               <div className="font-medium text-foreground">Você foi convidado(a)</div>
