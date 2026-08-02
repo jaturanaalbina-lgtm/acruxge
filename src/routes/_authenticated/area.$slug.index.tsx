@@ -23,17 +23,21 @@ export const Route = createFileRoute("/_authenticated/area/$slug/")({
 
 function AreaPage() {
   const { slug } = Route.useParams();
+  const { activeOrgId } = useActiveOrg();
 
-  const { data: area } = useQuery({
-    queryKey: ["area", slug],
+  const { data: area, isLoading } = useQuery({
+    queryKey: ["area", activeOrgId, slug],
+    enabled: !!activeOrgId,
     queryFn: async () => {
-      const { data, error } = await supabase.from("areas").select("*").eq("slug", slug).maybeSingle();
+      const { data, error } = await supabase.from("areas").select("*")
+        .eq("organization_id", activeOrgId!).eq("slug", slug).maybeSingle();
       if (error) throw error;
       return data;
     },
   });
 
-  if (!area) return <div className="p-6 text-sm text-muted-foreground">Carregando área…</div>;
+  if (isLoading || !activeOrgId) return <div className="p-6 text-sm text-muted-foreground">Carregando área…</div>;
+  if (!area) return <div className="p-6 text-sm text-muted-foreground">Área não encontrada nesta equipe.</div>;
 
   return (
     <div className="flex flex-col h-full">
