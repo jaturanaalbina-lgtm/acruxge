@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useActiveOrg } from "@/contexts/active-org";
 
 export const Route = createFileRoute("/_authenticated/area/$slug/")({
   ssr: false,
