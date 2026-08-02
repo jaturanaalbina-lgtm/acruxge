@@ -89,7 +89,8 @@ function MembersPage() {
     },
     onSuccess: () => {
       toast.success("Área atribuída");
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
+      qc.invalidateQueries({ queryKey: ["areas", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -104,7 +105,8 @@ function MembersPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      toast.success("Liderança atualizada");
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -120,7 +122,7 @@ function MembersPage() {
     },
     onSuccess: () => {
       toast.success("Removido da área");
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
