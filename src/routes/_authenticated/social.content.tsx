@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, ChevronRight, Plus, Download, Trash2, Search } from "lucide-react";
 import { toast } from "sonner";
+import { useActiveOrg } from "@/contexts/active-org";
 
 export const Route = createFileRoute("/_authenticated/social/content")({
   ssr: false,
