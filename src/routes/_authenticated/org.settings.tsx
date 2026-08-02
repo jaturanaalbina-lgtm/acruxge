@@ -92,6 +92,8 @@ function OrgSettingsPage() {
         </div>
         <Button onClick={() => save.mutate(undefined)} disabled={save.isPending}>Salvar</Button>
       </Card>
+
+      <AreasManager />
     </div>
   );
 }
