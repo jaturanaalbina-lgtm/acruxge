@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -89,7 +89,8 @@ function MembersPage() {
     },
     onSuccess: () => {
       toast.success("Área atribuída");
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
+      qc.invalidateQueries({ queryKey: ["areas", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -104,7 +105,8 @@ function MembersPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      toast.success("Liderança atualizada");
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -120,7 +122,7 @@ function MembersPage() {
     },
     onSuccess: () => {
       toast.success("Removido da área");
-      qc.invalidateQueries({ queryKey: ["admin-members"] });
+      qc.invalidateQueries({ queryKey: ["admin-members", activeOrgId] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -166,6 +168,18 @@ function MembersPage() {
           className="w-64"
         />
       </div>
+
+      {areas.length === 0 && (
+        <Card className="p-4 flex items-center gap-3 border-dashed">
+          <div className="flex-1 text-sm">
+            <p className="font-medium">Esta equipe ainda não tem áreas.</p>
+            <p className="text-muted-foreground">Crie as áreas para poder atribuí-las aos membros.</p>
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/org/settings">Gerenciar áreas</Link>
+          </Button>
+        </Card>
+      )}
 
       <Card className="glass-panel">
         {isLoading ? (

@@ -634,6 +634,7 @@ export type Database = {
           slug: string
         }[]
       }
+      seed_default_areas: { Args: { _org: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "leader" | "member"
