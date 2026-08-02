@@ -6,6 +6,7 @@ import { useActiveOrg } from "@/contexts/active-org";
 import { updateOrganization } from "@/lib/organizations.functions";
 import { OrgBrandForm, DEFAULT_BRAND, type OrgBrand } from "@/components/OrgBrandForm";
 import { OrgShareLink } from "@/components/OrgShareLink";
+import { AreasManager } from "@/components/AreasManager";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
