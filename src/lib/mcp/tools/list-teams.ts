@@ -1,6 +1,5 @@
 import { defineTool } from "@lovable.dev/mcp-js";
-import { z } from "zod";
-import { supabaseForUser, resolveOrg, textResult, errorResult } from "../supabase";
+import { supabaseForUser, textResult, errorResult } from "../supabase";
 
 export default defineTool({
   name: "list_teams",
@@ -16,6 +15,3 @@ export default defineTool({
     return textResult(data ?? []);
   },
 });
-
-export const _resolveOrg = resolveOrg;
-export const _z = z;
