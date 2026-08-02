@@ -39,9 +39,13 @@ function ContentPlanner() {
   const monthStart = useMemo(() => new Date(date.getFullYear(), date.getMonth(), 1), [date]);
   const monthEnd = useMemo(() => new Date(date.getFullYear(), date.getMonth() + 1, 0), [date]);
 
+  const { activeOrgId } = useActiveOrg();
+
   const { data: socialArea } = useQuery({
-    queryKey: ["area-social"],
-    queryFn: async () => (await supabase.from("areas").select("id").eq("slug", "social").maybeSingle()).data,
+    queryKey: ["area-social", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: async () => (await supabase.from("areas").select("id")
+      .eq("organization_id", activeOrgId!).eq("slug", "social").maybeSingle()).data,
   });
 
   const { data: posts = [] } = useQuery({
