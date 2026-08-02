@@ -169,6 +169,18 @@ function MembersPage() {
         />
       </div>
 
+      {areas.length === 0 && (
+        <Card className="p-4 flex items-center gap-3 border-dashed">
+          <div className="flex-1 text-sm">
+            <p className="font-medium">Esta equipe ainda não tem áreas.</p>
+            <p className="text-muted-foreground">Crie as áreas para poder atribuí-las aos membros.</p>
+          </div>
+          <Button asChild size="sm" variant="outline">
+            <Link to="/org/settings">Gerenciar áreas</Link>
+          </Button>
+        </Card>
+      )}
+
       <Card className="glass-panel">
         {isLoading ? (
           <div className="p-6 text-sm text-muted-foreground">Carregando…</div>
