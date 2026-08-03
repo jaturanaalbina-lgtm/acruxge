@@ -64,6 +64,11 @@ export function AppSidebar() {
               {isAdmin && (
                 <>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/pontos"}>
+                      <Link to="/pontos"><ClipboardList /> <span>Pontos da equipe</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === "/members"}>
                       <Link to="/members"><Users /> <span>Membros</span></Link>
                     </SidebarMenuButton>
@@ -75,6 +80,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 </>
               )}
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
