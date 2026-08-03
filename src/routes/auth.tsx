@@ -136,9 +136,9 @@ function AuthPage() {
               : <Cpu className="size-5 text-white" />}
           </div>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">{org?.name ?? "Painel de Equipe"}</h1>
+            <h1 className="text-lg font-semibold tracking-tight font-display">{org?.name ?? "GE by Acrux ROBOCEP"}</h1>
             <p className="text-xs text-muted-foreground">
-              {org ? "Entre para acessar o painel da equipe" : "Gestão interna da equipe"}
+              {org ? "Entre para acessar o painel da equipe" : "Gestão de Equipe · GE by Acrux ROBOCEP"}
             </p>
           </div>
         </div>
