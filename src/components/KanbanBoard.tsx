@@ -195,7 +195,7 @@ function TaskCard({ task, onDragStart, onDelete }: { task: Task; onDragStart: (e
 }
 
 
-export function NewTaskButton({ areaId, projectId, status = "backlog", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
+export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
