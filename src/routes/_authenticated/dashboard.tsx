@@ -61,7 +61,7 @@ function Dashboard() {
     <div className="p-6 space-y-6 max-w-7xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Olá, {user.user_metadata?.full_name?.split(" ")[0] ?? "equipe"} 👋</h1>
+          <h1 className="text-2xl font-semibold tracking-tight font-display">Olá, {user.user_metadata?.full_name?.split(" ")[0] ?? "equipe"} 👋</h1>
           <p className="text-sm text-muted-foreground">Visão geral das tarefas da equipe.</p>
         </div>
         <Badge variant="outline" className="gap-1"><Sparkles className="size-3" /> Acrux ROBOCEP</Badge>
@@ -116,7 +116,7 @@ function StatCard({ icon: Icon, label, value }: any) {
     <Card className="p-4 flex items-center gap-3">
       <div className="size-10 rounded-md bg-accent flex items-center justify-center"><Icon className="size-4" /></div>
       <div>
-        <div className="text-2xl font-semibold">{value}</div>
+        <div className="text-2xl font-semibold font-display">{value}</div>
         <div className="text-xs text-muted-foreground">{label}</div>
       </div>
     </Card>

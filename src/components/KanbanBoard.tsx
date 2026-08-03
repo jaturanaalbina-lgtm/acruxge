@@ -8,20 +8,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
-  { key: "backlog", label: "Backlog" },
   { key: "todo", label: "A Fazer" },
-  { key: "in_progress", label: "Em Andamento" },
-  { key: "review", label: "Em Revisão" },
-  { key: "approval", label: "Aguardando Aprovação" },
-  { key: "done", label: "Concluído" },
+  { key: "in_progress", label: "Fazendo" },
+  { key: "done", label: "Feito" },
 ];
 
 type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "approval" | "done";
+
 type Priority = "low" | "medium" | "high" | "urgent";
 
 interface Task {
@@ -80,6 +82,26 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
+  const deleteTask = useMutation({
+    mutationFn: async (id: string) => {
+      const { error, count } = await supabase.from("tasks").delete({ count: "exact" }).eq("id", id);
+      if (error) throw error;
+      if (!count) throw new Error("Você não tem permissão para excluir esta tarefa.");
+    },
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Task[]>(key);
+      qc.setQueryData<Task[]>(key, (old = []) => old.filter((t) => t.id !== id));
+      return { prev };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(key, ctx.prev);
+      toast.error(e?.message ?? "Não foi possível excluir a tarefa.");
+    },
+    onSuccess: () => toast.success("Tarefa excluída"),
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
   const [dragging, setDragging] = useState<string | null>(null);
   const onDragStart = (e: DragEvent, id: string) => { setDragging(id); e.dataTransfer.effectAllowed = "move"; };
   const onDragOver = (e: DragEvent) => e.preventDefault();
@@ -97,14 +119,19 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
           <div key={col.key} className="kanban-col w-72 shrink-0 flex flex-col" onDragOver={onDragOver} onDrop={(e) => onDrop(e, col.key)}>
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{col.label}</span>
+                <span className="text-sm font-medium font-display">{col.label}</span>
                 <Badge variant="secondary" className="h-5">{items.length}</Badge>
               </div>
               <NewTaskButton areaId={areaId} projectId={projectId} status={col.key} compact />
             </div>
             <div className="flex-1 p-2 space-y-2 overflow-y-auto">
               {items.map((task) => (
-                <TaskCard key={task.id} task={task} onDragStart={(e) => onDragStart(e, task.id)} />
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  onDragStart={(e) => onDragStart(e, task.id)}
+                  onDelete={() => deleteTask.mutate(task.id)}
+                />
               ))}
               {items.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Vazio</div>}
             </div>
@@ -115,7 +142,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   );
 }
 
-function TaskCard({ task, onDragStart }: { task: Task; onDragStart: (e: DragEvent) => void }) {
+function TaskCard({ task, onDragStart, onDelete }: { task: Task; onDragStart: (e: DragEvent) => void; onDelete: () => void }) {
   const priorityClr: Record<Priority, string> = {
     urgent: "bg-red-500/15 text-red-300 border-red-500/30",
     high: "bg-orange-500/15 text-orange-300 border-orange-500/30",
@@ -137,12 +164,38 @@ function TaskCard({ task, onDragStart }: { task: Task; onDragStart: (e: DragEven
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
           </div>
         </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Excluir tarefa"
+              className="size-6 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir tarefa?</AlertDialogTitle>
+              <AlertDialogDescription>
+                “{task.title}” será removida definitivamente para toda a equipe.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={onDelete}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Card>
   );
 }
 
-export function NewTaskButton({ areaId, projectId, status = "backlog", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
+
+export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");

@@ -180,7 +180,7 @@ export function OrgBrandForm({
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold truncate">{value.name || "Sua equipe"}</div>
-            <div className="text-[11px] text-muted-foreground">Painel da equipe</div>
+            <div className="text-[11px] text-muted-foreground">GE by Acrux ROBOCEP</div>
           </div>
           <span
             className="text-xs font-medium px-3 py-1.5 rounded-md text-white"

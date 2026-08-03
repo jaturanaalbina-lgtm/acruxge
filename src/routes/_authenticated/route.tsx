@@ -40,7 +40,7 @@ function Shell() {
           <header className="h-12 flex items-center gap-3 border-b border-border px-3 sticky top-0 bg-background/80 backdrop-blur z-10">
             <SidebarTrigger />
             <div className="text-xs text-muted-foreground truncate">
-              {activeOrg?.brand_name || activeOrg?.name} · Gestão da Equipe
+              {activeOrg?.brand_name || activeOrg?.name} · <span className="font-display">GE by Acrux ROBOCEP</span>
             </div>
           </header>
           <main className="flex-1 min-w-0">

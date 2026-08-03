@@ -6,7 +6,7 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail } from "lucide-react";
+import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActiveOrg } from "@/contexts/active-org";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
@@ -64,6 +64,11 @@ export function AppSidebar() {
               {isAdmin && (
                 <>
                   <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/pontos"}>
+                      <Link to="/pontos"><ClipboardList /> <span>Pontos da equipe</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === "/members"}>
                       <Link to="/members"><Users /> <span>Membros</span></Link>
                     </SidebarMenuButton>
@@ -75,6 +80,7 @@ export function AppSidebar() {
                   </SidebarMenuItem>
                 </>
               )}
+
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
