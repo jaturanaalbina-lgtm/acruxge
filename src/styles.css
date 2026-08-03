@@ -101,3 +101,36 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
 }
+
+@utility font-display {
+  font-family: var(--font-display);
+  letter-spacing: 0.01em;
+}
+
+@utility hover-lift {
+  transition: transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease;
+}
+@utility hover-lift-on {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklab, var(--acrux) 55%, transparent);
+  box-shadow: 0 12px 30px -14px color-mix(in oklab, var(--acrux) 70%, transparent);
+}
+
+@keyframes ge-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@utility animate-rise {
+  animation: ge-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
