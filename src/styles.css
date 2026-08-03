@@ -40,6 +40,8 @@
   --color-acrux: var(--acrux);
   --color-acrux-glow: var(--acrux-glow);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Orbitron", "Inter", ui-sans-serif, system-ui, sans-serif;
+
 }
 
 :root {
