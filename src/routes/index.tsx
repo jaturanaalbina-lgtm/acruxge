@@ -7,13 +7,13 @@ import { Cpu, KanbanSquare, Clock, CalendarDays, ShieldCheck, Palette, ArrowRigh
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Painel de Equipe · Gestão para equipes de robótica" },
+      { title: "GE by Acrux ROBOCEP · Gestão de Equipe para robótica" },
       {
         name: "description",
         content:
-          "Crie o painel da sua equipe: Kanban por área, controle de ponto com relatório em PDF, planejamento de conteúdo e administração de membros.",
+          "GE by Acrux ROBOCEP: Kanban por área, controle de ponto com relatório em PDF, planejamento de conteúdo e administração de membros da sua equipe.",
       },
-      { property: "og:title", content: "Painel de Equipe · Gestão para equipes de robótica" },
+      { property: "og:title", content: "GE by Acrux ROBOCEP · Gestão de Equipe para robótica" },
       {
         property: "og:description",
         content:
@@ -27,13 +27,14 @@ export const Route = createFileRoute("/")({
 });
 
 const FEATURES = [
-  { icon: KanbanSquare, title: "Kanban por área", desc: "Backlog até concluído, com prazos, prioridades e sincronização em tempo real." },
+  { icon: KanbanSquare, title: "Kanban por área", desc: "A fazer, fazendo e feito, com prazos, prioridades e sincronização em tempo real." },
   { icon: Clock, title: "Ponto e relatórios", desc: "Cronômetro, relatório obrigatório do dia e exportação em PDF para papel timbrado." },
   { icon: CalendarDays, title: "Planejamento de conteúdo", desc: "Planilha de posts com data, tipo, comunidade, responsável e status." },
   { icon: ShieldCheck, title: "Permissões por cargo", desc: "Donos e admins controlam membros, projetos e configurações da equipe." },
   { icon: Palette, title: "Marca da equipe", desc: "Escolha o logo e as cores principais — o painel inteiro se adapta." },
   { icon: Cpu, title: "Multi-equipe", desc: "Cada equipe tem seu próprio painel, membros e dados totalmente isolados." },
 ];
+
 
 function LandingPage() {
   const [signedIn, setSignedIn] = useState(false);
