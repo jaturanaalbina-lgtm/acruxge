@@ -334,7 +334,7 @@ function PontoPage() {
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Ponto</h1>
+        <h1 className="text-2xl font-semibold tracking-tight font-display">Ponto</h1>
         <p className="text-sm text-muted-foreground">Registre seu horário de trabalho. Ao encerrar, é obrigatório descrever o que foi feito no dia.</p>
       </div>
 
@@ -348,7 +348,7 @@ function PontoPage() {
               <div className="text-xs uppercase tracking-wide text-muted-foreground">
                 {open ? "Em andamento" : "Parado"}
               </div>
-              <div className="text-3xl font-mono font-semibold">
+              <div className="text-3xl font-display font-semibold">
                 {open ? fmtHMS(liveSeconds) : "00:00:00"}
               </div>
               {open && (
