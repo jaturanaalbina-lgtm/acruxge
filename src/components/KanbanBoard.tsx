@@ -8,20 +8,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
-  { key: "backlog", label: "Backlog" },
   { key: "todo", label: "A Fazer" },
-  { key: "in_progress", label: "Em Andamento" },
-  { key: "review", label: "Em Revisão" },
-  { key: "approval", label: "Aguardando Aprovação" },
-  { key: "done", label: "Concluído" },
+  { key: "in_progress", label: "Fazendo" },
+  { key: "done", label: "Feito" },
 ];
 
 type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "approval" | "done";
+
 type Priority = "low" | "medium" | "high" | "urgent";
 
 interface Task {
