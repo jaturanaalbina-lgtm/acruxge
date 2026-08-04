@@ -8,7 +8,7 @@ import { OrgBrandForm, DEFAULT_BRAND, type OrgBrand } from "@/components/OrgBran
 import { OrgShareLink } from "@/components/OrgShareLink";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Sparkles } from "lucide-react";
+import { Building2, Sparkles, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
@@ -31,10 +31,20 @@ function OnboardingPage() {
     },
   });
 
+  const { data: pendingOrgs = [] } = useQuery({
+    queryKey: ["my-pending-organizations"],
+    refetchInterval: 20_000,
+    queryFn: async () => {
+      const { data } = await (supabase.rpc as any)("my_pending_organizations");
+      return (data ?? []) as Array<{ id: string; name: string; brand_name: string | null; logo_url: string | null }>;
+    },
+  });
+
   // Se o usuário já tem equipe(s), pula para o dashboard.
   useEffect(() => {
     if (orgs.length > 0 && !createdSlug) navigate({ to: "/dashboard" });
   }, [orgs, navigate, createdSlug]);
+
 
   const create = useMutation({
     mutationFn: async () =>
@@ -71,7 +81,21 @@ function OnboardingPage() {
           </p>
         </div>
 
+        {!createdSlug && pendingOrgs.length > 0 && (
+          <Card className="p-5 space-y-2 border-dashed">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Hourglass className="size-4" /> Aguardando aprovação
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Seu pedido para entrar em{" "}
+              <strong>{pendingOrgs.map((o) => o.brand_name || o.name).join(", ")}</strong>{" "}
+              foi enviado. Assim que um administrador da equipe autorizar, o painel aparecerá aqui automaticamente.
+            </p>
+          </Card>
+        )}
+
         {createdSlug ? (
+
           <Card className="p-6 space-y-4">
             <OrgShareLink slug={createdSlug} />
             <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Ir para o painel</Button>

@@ -222,18 +222,21 @@ export type Database = {
           created_at: string
           organization_id: string
           role: Database["public"]["Enums"]["org_role"]
+          status: string
           user_id: string
         }
         Insert: {
           created_at?: string
           organization_id: string
           role?: Database["public"]["Enums"]["org_role"]
+          status?: string
           user_id: string
         }
         Update: {
           created_at?: string
           organization_id?: string
           role?: Database["public"]["Enums"]["org_role"]
+          status?: string
           user_id?: string
         }
         Relationships: [
@@ -568,6 +571,10 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
         }[]
       }
+      approve_member: {
+        Args: { _org: string; _user: string }
+        Returns: undefined
+      }
       get_invite_by_token: {
         Args: { _token: string }
         Returns: {
@@ -618,6 +625,16 @@ export type Database = {
           id: string
         }[]
       }
+      list_pending_members: {
+        Args: { _org: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          phone: string
+          requested_at: string
+          user_id: string
+        }[]
+      }
       my_organizations: {
         Args: never
         Returns: {
@@ -633,6 +650,20 @@ export type Database = {
           role: Database["public"]["Enums"]["org_role"]
           slug: string
         }[]
+      }
+      my_pending_organizations: {
+        Args: never
+        Returns: {
+          brand_name: string
+          id: string
+          logo_url: string
+          name: string
+          requested_at: string
+        }[]
+      }
+      reject_member: {
+        Args: { _org: string; _user: string }
+        Returns: undefined
       }
       seed_default_areas: { Args: { _org: string }; Returns: undefined }
     }
