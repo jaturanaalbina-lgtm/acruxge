@@ -81,7 +81,21 @@ function OnboardingPage() {
           </p>
         </div>
 
+        {!createdSlug && pendingOrgs.length > 0 && (
+          <Card className="p-5 space-y-2 border-dashed">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Hourglass className="size-4" /> Aguardando aprovação
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Seu pedido para entrar em{" "}
+              <strong>{pendingOrgs.map((o) => o.brand_name || o.name).join(", ")}</strong>{" "}
+              foi enviado. Assim que um administrador da equipe autorizar, o painel aparecerá aqui automaticamente.
+            </p>
+          </Card>
+        )}
+
         {createdSlug ? (
+
           <Card className="p-6 space-y-4">
             <OrgShareLink slug={createdSlug} />
             <Button className="w-full" onClick={() => navigate({ to: "/dashboard" })}>Ir para o painel</Button>
