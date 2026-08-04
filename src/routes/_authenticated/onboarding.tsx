@@ -8,7 +8,7 @@ import { OrgBrandForm, DEFAULT_BRAND, type OrgBrand } from "@/components/OrgBran
 import { OrgShareLink } from "@/components/OrgShareLink";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Building2, Sparkles } from "lucide-react";
+import { Building2, Sparkles, Hourglass } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
