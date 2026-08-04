@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedPontosRouteImport } from './routes/_authenticated/pontos'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
 import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
@@ -46,6 +47,11 @@ const AuthenticatedPontosRoute = AuthenticatedPontosRouteImport.update({
 const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
   id: '/ponto',
   path: '/ponto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/perfil': typeof AuthenticatedPerfilRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/_authenticated/invites': typeof AuthenticatedInvitesRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/pontos': typeof AuthenticatedPontosRoute
   '/_authenticated/org/new': typeof AuthenticatedOrgNewRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/invites'
     | '/members'
     | '/onboarding'
+    | '/perfil'
     | '/ponto'
     | '/pontos'
     | '/org/new'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/invites'
     | '/members'
     | '/onboarding'
+    | '/perfil'
     | '/ponto'
     | '/pontos'
     | '/org/new'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/_authenticated/invites'
     | '/_authenticated/members'
     | '/_authenticated/onboarding'
+    | '/_authenticated/perfil'
     | '/_authenticated/ponto'
     | '/_authenticated/pontos'
     | '/_authenticated/org/new'
@@ -235,6 +247,13 @@ declare module '@tanstack/react-router' {
       path: '/ponto'
       fullPath: '/ponto'
       preLoaderRoute: typeof AuthenticatedPontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/onboarding': {
@@ -308,6 +327,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedPontosRoute: typeof AuthenticatedPontosRoute
   AuthenticatedOrgNewRoute: typeof AuthenticatedOrgNewRoute
@@ -322,6 +342,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedPontosRoute: AuthenticatedPontosRoute,
   AuthenticatedOrgNewRoute: AuthenticatedOrgNewRoute,
