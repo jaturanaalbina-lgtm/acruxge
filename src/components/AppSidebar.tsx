@@ -6,7 +6,7 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail, ClipboardList } from "lucide-react";
+import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail, ClipboardList, UserCheck, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActiveOrg } from "@/contexts/active-org";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
@@ -26,6 +26,17 @@ export function AppSidebar() {
         .eq("organization_id", activeOrgId!).order("sort_order");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: pending = [] } = useQuery({
+    queryKey: ["pending-members", activeOrgId],
+    enabled: !!activeOrgId && isAdmin,
+    refetchInterval: 30_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase.rpc as any)("list_pending_members", { _org: activeOrgId! });
+      if (error) throw error;
+      return (data ?? []) as Array<{ user_id: string }>;
     },
   });
 
@@ -57,6 +68,11 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/perfil"}>
+                  <Link to="/perfil"><UserCog /> <span>Meu perfil</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/ponto"}>
                   <Link to="/ponto"><Clock /> <span>Ponto</span></Link>
                 </SidebarMenuButton>
@@ -71,6 +87,18 @@ export function AppSidebar() {
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === "/members"}>
                       <Link to="/members"><Users /> <span>Membros</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/solicitacoes"}>
+                      <Link to="/solicitacoes">
+                        <UserCheck /> <span>Solicitações</span>
+                        {pending.length > 0 && (
+                          <span className="ml-auto rounded-full bg-acrux px-1.5 text-[10px] font-semibold text-white group-data-[collapsible=icon]:hidden">
+                            {pending.length}
+                          </span>
+                        )}
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
