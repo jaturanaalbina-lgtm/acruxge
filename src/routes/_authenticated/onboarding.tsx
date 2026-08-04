@@ -31,10 +31,20 @@ function OnboardingPage() {
     },
   });
 
+  const { data: pendingOrgs = [] } = useQuery({
+    queryKey: ["my-pending-organizations"],
+    refetchInterval: 20_000,
+    queryFn: async () => {
+      const { data } = await (supabase.rpc as any)("my_pending_organizations");
+      return (data ?? []) as Array<{ id: string; name: string; brand_name: string | null; logo_url: string | null }>;
+    },
+  });
+
   // Se o usuário já tem equipe(s), pula para o dashboard.
   useEffect(() => {
     if (orgs.length > 0 && !createdSlug) navigate({ to: "/dashboard" });
   }, [orgs, navigate, createdSlug]);
+
 
   const create = useMutation({
     mutationFn: async () =>
