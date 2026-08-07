@@ -162,6 +162,19 @@ function PerfilPage() {
             Você receberá um link de confirmação no novo endereço. O e-mail só muda depois de confirmado.
           </p>
         </div>
+
+        {pendingEmail && (
+          <div className="rounded-md border border-acrux/40 bg-acrux/10 p-3 text-xs space-y-2">
+            <p>
+              Confirmação pendente para <span className="font-medium">{pendingEmail}</span>. Abra o link enviado
+              para concluir a troca. Se não chegou em alguns minutos, verifique a caixa de spam ou lixo eletrônico.
+            </p>
+            <Button size="sm" variant="outline" disabled={savingEmail} onClick={() => requestEmailChange(pendingEmail)}>
+              Reenviar link de confirmação
+            </Button>
+          </div>
+        )}
+
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" disabled={savingEmail}>Alterar e-mail</Button>
