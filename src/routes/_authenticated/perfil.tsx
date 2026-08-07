@@ -42,6 +42,7 @@ function PerfilPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const { data: me } = useQuery({
     queryKey: ["me-profile"],
@@ -79,10 +80,7 @@ function PerfilPage() {
     qc.invalidateQueries({ queryKey: ["admin-members"] });
   };
 
-  const saveEmail = async () => {
-    const next = email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(next)) return toast.error("E-mail inválido.");
-    if (next === me?.email) return toast.info("Este já é o seu e-mail atual.");
+  const requestEmailChange = async (next: string) => {
     setSavingEmail(true);
     const { error } = await supabase.auth.updateUser(
       { email: next },
@@ -90,7 +88,15 @@ function PerfilPage() {
     );
     setSavingEmail(false);
     if (error) return toast.error(error.message);
+    setPendingEmail(next);
     toast.success("Enviamos um link de confirmação para o novo e-mail.");
+  };
+
+  const saveEmail = async () => {
+    const next = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(next)) return toast.error("E-mail inválido.");
+    if (next === me?.email) return toast.info("Este já é o seu e-mail atual.");
+    await requestEmailChange(next);
   };
 
   const savePassword = async () => {
@@ -156,6 +162,19 @@ function PerfilPage() {
             Você receberá um link de confirmação no novo endereço. O e-mail só muda depois de confirmado.
           </p>
         </div>
+
+        {pendingEmail && (
+          <div className="rounded-md border border-acrux/40 bg-acrux/10 p-3 text-xs space-y-2">
+            <p>
+              Confirmação pendente para <span className="font-medium">{pendingEmail}</span>. Abra o link enviado
+              para concluir a troca. Se não chegou em alguns minutos, verifique a caixa de spam ou lixo eletrônico.
+            </p>
+            <Button size="sm" variant="outline" disabled={savingEmail} onClick={() => requestEmailChange(pendingEmail)}>
+              Reenviar link de confirmação
+            </Button>
+          </div>
+        )}
+
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="outline" disabled={savingEmail}>Alterar e-mail</Button>

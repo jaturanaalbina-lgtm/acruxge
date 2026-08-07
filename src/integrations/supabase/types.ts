@@ -470,6 +470,8 @@ export type Database = {
           clock_out: string | null
           created_at: string
           duration_minutes: number | null
+          edited_at: string | null
+          edited_by: string | null
           id: string
           notes: string | null
           organization_id: string
@@ -483,6 +485,8 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           duration_minutes?: number | null
+          edited_at?: string | null
+          edited_by?: string | null
           id?: string
           notes?: string | null
           organization_id: string
@@ -496,6 +500,8 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           duration_minutes?: number | null
+          edited_at?: string | null
+          edited_by?: string | null
           id?: string
           notes?: string | null
           organization_id?: string

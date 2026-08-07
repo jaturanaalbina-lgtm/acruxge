@@ -15,14 +15,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Play, Square, Clock, Calendar, FileText, Download, Trash2, Save, FileDown } from "lucide-react";
+import { Play, Square, Clock, Calendar, FileText, Download, Trash2, Save, FileDown, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryEditDialog";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   ssr: false,
   component: PontoPage,
+  head: () => ({
+    meta: [
+      { title: "Meu ponto | GE by Acrux ROBOCEP" },
+      { name: "description", content: "Registre, ajuste e exporte suas horas de trabalho com relatório diário." },
+      { property: "og:title", content: "Meu ponto | GE by Acrux ROBOCEP" },
+      { property: "og:description", content: "Cronômetro de ponto, relatório diário e exportação em PDF." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const MIN_REPORT = 10;
@@ -63,6 +74,7 @@ function PontoPage() {
   const [draftNotes, setDraftNotes] = useState<Record<string, string>>({});
   const [stopOpen, setStopOpen] = useState(false);
   const [stopReport, setStopReport] = useState("");
+  const [editing, setEditing] = useState<EditableEntry | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -237,7 +249,7 @@ function PontoPage() {
       fmtTime(e.clock_in),
       e.clock_out ? fmtTime(e.clock_out) : "",
       e.duration_minutes ?? "",
-      (e.notes ?? "").replace(/\n/g, " "),
+      ((e.notes ?? "") + ((e as any).edited_at ? " [ajustado manualmente]" : "")).replace(/\n/g, " "),
     ]);
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -281,7 +293,7 @@ function PontoPage() {
           fmtTime(e.clock_in),
           e.clock_out ? fmtTime(e.clock_out) : "—",
           e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
-          (e.notes ?? "").trim() || "—",
+          ((e.notes ?? "").trim() || "—") + ((e as any).edited_at ? " (ajustado manualmente)" : ""),
         ]);
         if (i === sorted.length - 1 && sorted.length > 1) {
           body.push([
@@ -431,6 +443,7 @@ function PontoPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {e.duration_minutes ? fmtDuration(e.duration_minutes) : "em curso"}
+                          {(e as any).edited_at ? " · ajustado" : ""}
                         </div>
                       </div>
                       <Textarea
@@ -448,6 +461,9 @@ function PontoPage() {
                           onClick={() => saveNotesMut.mutate({ id: e.id, notes })}
                         >
                           <Save className="size-3" /> Salvar
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditing(e as EditableEntry)}>
+                          <Pencil className="size-3" /> Ajustar
                         </Button>
                         <Button
                           size="sm"
@@ -507,6 +523,16 @@ function PontoPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <TimeEntryEditDialog
+        entry={editing}
+        editorId={user.id}
+        onOpenChange={(v) => { if (!v) setEditing(null); }}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+          qc.invalidateQueries({ queryKey: ["time-open", user.id] });
+        }}
+      />
     </div>
   );
 }
