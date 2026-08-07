@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveOrg } from "@/contexts/active-org";
@@ -8,9 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, Download, FileDown, Users } from "lucide-react";
+import { Clock, Download, FileDown, Users, Pencil } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryEditDialog";
 
 export const Route = createFileRoute("/_authenticated/pontos")({
   ssr: false,
@@ -25,6 +26,7 @@ type Entry = {
   clock_out: string | null;
   duration_minutes: number | null;
   notes: string | null;
+  edited_at: string | null;
 };
 
 function fmtDuration(mins: number) {
@@ -41,6 +43,9 @@ function fmtDateLong(d: string) {
 
 function PontosAdminPage() {
   const { activeOrgId, activeOrg, isAdmin } = useActiveOrg();
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState<EditableEntry | null>(null);
+  const [editorId, setEditorId] = useState("");
   const [from, setFrom] = useState(() => {
     const d = new Date();
     d.setDate(1);
@@ -48,6 +53,15 @@ function PontosAdminPage() {
   });
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [member, setMember] = useState<string>("all");
+
+  useQuery({
+    queryKey: ["me-uid"],
+    queryFn: async () => {
+      const { data } = await supabase.auth.getUser();
+      setEditorId(data.user?.id ?? "");
+      return data.user?.id ?? "";
+    },
+  });
 
   const { data: directory = [] } = useQuery({
     queryKey: ["directory", activeOrgId],
@@ -71,7 +85,7 @@ function PontosAdminPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("time_entries")
-        .select("id,user_id,work_date,clock_in,clock_out,duration_minutes,notes")
+        .select("id,user_id,work_date,clock_in,clock_out,duration_minutes,notes,edited_at")
         .eq("organization_id", activeOrgId!)
         .gte("work_date", from)
         .lte("work_date", to)
@@ -102,7 +116,7 @@ function PontosAdminPage() {
       fmtTime(e.clock_in),
       e.clock_out ? fmtTime(e.clock_out) : "",
       e.duration_minutes ?? "",
-      (e.notes ?? "").replace(/\n/g, " "),
+      ((e.notes ?? "") + (e.edited_at ? " [ajustado manualmente]" : "")).replace(/\n/g, " "),
     ]);
     const csv = [header, ...rows]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -142,7 +156,7 @@ function PontosAdminPage() {
         fmtTime(e.clock_in),
         e.clock_out ? fmtTime(e.clock_out) : "—",
         e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
-        (e.notes ?? "").trim() || "—",
+        ((e.notes ?? "").trim() || "—") + (e.edited_at ? " (ajustado manualmente)" : ""),
       ]),
       styles: { font: "times", fontSize: 9, cellPadding: 2, valign: "top", textColor: 20 },
       headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
@@ -231,7 +245,7 @@ function PontosAdminPage() {
         )}
         <div className="space-y-2">
           {filtered.map((e) => (
-            <div key={e.id} className="grid md:grid-cols-[180px_150px_1fr] gap-3 items-start rounded-md border border-border p-3">
+            <div key={e.id} className="grid md:grid-cols-[180px_150px_1fr_auto] gap-3 items-start rounded-md border border-border p-3">
               <div className="text-sm font-medium truncate">{names[e.user_id] ?? "Membro"}</div>
               <div className="text-sm">
                 <div className="font-mono">
@@ -239,15 +253,26 @@ function PontosAdminPage() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {fmtDateLong(e.work_date)} · {e.duration_minutes ? fmtDuration(e.duration_minutes) : "em curso"}
+                  {e.edited_at ? " · ajustado" : ""}
                 </div>
               </div>
               <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {(e.notes ?? "").trim() || "Sem relatório."}
               </div>
+              <Button size="sm" variant="outline" onClick={() => setEditing(e)}>
+                <Pencil className="size-3" /> Ajustar
+              </Button>
             </div>
           ))}
         </div>
       </Card>
+
+      <TimeEntryEditDialog
+        entry={editing}
+        editorId={editorId}
+        onOpenChange={(v) => { if (!v) setEditing(null); }}
+        onSaved={() => qc.invalidateQueries({ queryKey: ["org-time-entries"] })}
+      />
     </div>
   );
 }

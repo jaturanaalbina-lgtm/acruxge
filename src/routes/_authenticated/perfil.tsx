@@ -42,6 +42,7 @@ function PerfilPage() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPwd, setSavingPwd] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   const { data: me } = useQuery({
     queryKey: ["me-profile"],
@@ -79,10 +80,7 @@ function PerfilPage() {
     qc.invalidateQueries({ queryKey: ["admin-members"] });
   };
 
-  const saveEmail = async () => {
-    const next = email.trim().toLowerCase();
-    if (!/^\S+@\S+\.\S+$/.test(next)) return toast.error("E-mail inválido.");
-    if (next === me?.email) return toast.info("Este já é o seu e-mail atual.");
+  const requestEmailChange = async (next: string) => {
     setSavingEmail(true);
     const { error } = await supabase.auth.updateUser(
       { email: next },
@@ -90,7 +88,15 @@ function PerfilPage() {
     );
     setSavingEmail(false);
     if (error) return toast.error(error.message);
+    setPendingEmail(next);
     toast.success("Enviamos um link de confirmação para o novo e-mail.");
+  };
+
+  const saveEmail = async () => {
+    const next = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(next)) return toast.error("E-mail inválido.");
+    if (next === me?.email) return toast.info("Este já é o seu e-mail atual.");
+    await requestEmailChange(next);
   };
 
   const savePassword = async () => {

@@ -21,9 +21,9 @@ async function handleGoogle() {
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
-  validateSearch: (s: Record<string, unknown>) => ({
-    invite: typeof s.invite === "string" ? s.invite : undefined,
-    org: typeof s.org === "string" ? s.org : undefined,
+  validateSearch: (s: Record<string, unknown>): { invite?: string; org?: string } => ({
+    ...(typeof s.invite === "string" ? { invite: s.invite } : {}),
+    ...(typeof s.org === "string" ? { org: s.org } : {}),
   }),
   component: AuthPage,
 });
