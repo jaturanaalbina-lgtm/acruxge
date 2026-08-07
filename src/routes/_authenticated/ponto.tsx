@@ -24,6 +24,16 @@ import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryE
 export const Route = createFileRoute("/_authenticated/ponto")({
   ssr: false,
   component: PontoPage,
+  head: () => ({
+    meta: [
+      { title: "Meu ponto | GE by Acrux ROBOCEP" },
+      { name: "description", content: "Registre, ajuste e exporte suas horas de trabalho com relatório diário." },
+      { property: "og:title", content: "Meu ponto | GE by Acrux ROBOCEP" },
+      { property: "og:description", content: "Cronômetro de ponto, relatório diário e exportação em PDF." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 const MIN_REPORT = 10;
