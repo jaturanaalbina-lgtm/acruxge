@@ -16,6 +16,16 @@ import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryE
 export const Route = createFileRoute("/_authenticated/pontos")({
   ssr: false,
   component: PontosAdminPage,
+  head: () => ({
+    meta: [
+      { title: "Pontos da equipe | GE by Acrux ROBOCEP" },
+      { name: "description", content: "Acompanhe, ajuste e exporte os registros de ponto de todos os membros da equipe." },
+      { property: "og:title", content: "Pontos da equipe | GE by Acrux ROBOCEP" },
+      { property: "og:description", content: "Relatórios de horas por membro com exportação em CSV e PDF." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 type Entry = {
