@@ -33,7 +33,7 @@ import { useActiveOrg } from "@/contexts/active-org";
 
 function InvitesPage() {
   const qc = useQueryClient();
-  const { activeOrgId, isAdmin } = useActiveOrg();
+  const { activeOrgId, isAdmin, activeOrg } = useActiveOrg();
   const [email, setEmail] = useState("");
   const [areaId, setAreaId] = useState<string>("none");
   const [isLeader, setIsLeader] = useState(false);
