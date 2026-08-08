@@ -104,6 +104,8 @@ function InvitesPage() {
   const inviteUrl = (token: string) =>
     `${typeof window !== "undefined" ? window.location.origin : ""}/auth?invite=${token}`;
 
+  const teamLink = `${typeof window !== "undefined" ? window.location.origin : ""}/auth?org=${activeOrg?.slug ?? ""}`;
+
   const copy = async (token: string) => {
     await navigator.clipboard.writeText(inviteUrl(token));
     toast.success("Link copiado");
