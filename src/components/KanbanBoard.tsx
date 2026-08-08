@@ -1,19 +1,21 @@
-import { useState, useEffect, type DragEvent } from "react";
+import { useState, useEffect, useRef, type PointerEvent as RPointerEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useActiveOrg } from "@/contexts/active-org";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical, Trash2 } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
@@ -21,6 +23,8 @@ const COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: "in_progress", label: "Fazendo" },
   { key: "done", label: "Feito" },
 ];
+
+const UNASSIGNED = "__none__";
 
 type TaskStatus = "backlog" | "todo" | "in_progress" | "review" | "approval" | "done";
 
@@ -37,11 +41,33 @@ interface Task {
   progress: number | null;
   area_id: string;
   project_id: string | null;
+  assignee_id: string | null;
+}
+
+export type Member = { id: string; full_name: string | null; avatar_url: string | null };
+
+export function useOrgMembers() {
+  const { activeOrgId } = useActiveOrg();
+  return useQuery({
+    queryKey: ["directory", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("list_directory", { _org: activeOrgId! });
+      if (error) throw error;
+      return (data ?? []) as Member[];
+    },
+  });
+}
+
+function initials(name?: string | null) {
+  if (!name) return "?";
+  return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
 export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?: string | null }) {
   const qc = useQueryClient();
   const key = ["tasks", areaId, projectId ?? "area"];
+  const { data: members = [] } = useOrgMembers();
 
   const { data: tasks = [] } = useQuery({
     queryKey: key,
@@ -67,18 +93,18 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [areaId, projectId]);
 
-  const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: TaskStatus }) => {
-      const { error } = await supabase.from("tasks").update({ status }).eq("id", id);
+  const patchTask = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Task> }) => {
+      const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onMutate: async ({ id, status }) => {
+    onMutate: async ({ id, patch }) => {
       await qc.cancelQueries({ queryKey: key });
       const prev = qc.getQueryData<Task[]>(key);
-      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === id ? { ...t, status } : t)));
+      qc.setQueryData<Task[]>(key, (old = []) => old.map((t) => (t.id === id ? { ...t, ...patch } : t)));
       return { prev };
     },
-    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error("Não foi possível mover."); },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error("Não foi possível atualizar a tarefa."); },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
@@ -102,21 +128,54 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
-  const [dragging, setDragging] = useState<string | null>(null);
-  const onDragStart = (e: DragEvent, id: string) => { setDragging(id); e.dataTransfer.effectAllowed = "move"; };
-  const onDragOver = (e: DragEvent) => e.preventDefault();
-  const onDrop = (e: DragEvent, status: TaskStatus) => {
+  // Pointer-based drag & drop (works with mouse and touch)
+  const [drag, setDrag] = useState<{ id: string; title: string; x: number; y: number } | null>(null);
+  const [overCol, setOverCol] = useState<TaskStatus | null>(null);
+  const dragRef = useRef<{ id: string } | null>(null);
+
+  const columnAt = (x: number, y: number): TaskStatus | null => {
+    const el = document.elementFromPoint(x, y) as HTMLElement | null;
+    const col = el?.closest("[data-col]") as HTMLElement | null;
+    return (col?.dataset.col as TaskStatus) ?? null;
+  };
+
+  const startDrag = (e: RPointerEvent, task: Task) => {
     e.preventDefault();
-    if (dragging) updateStatus.mutate({ id: dragging, status });
-    setDragging(null);
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    dragRef.current = { id: task.id };
+    setDrag({ id: task.id, title: task.title, x: e.clientX, y: e.clientY });
+  };
+
+  const moveDrag = (e: RPointerEvent) => {
+    if (!dragRef.current) return;
+    e.preventDefault();
+    setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
+    setOverCol(columnAt(e.clientX, e.clientY));
+  };
+
+  const endDrag = (e: RPointerEvent) => {
+    const cur = dragRef.current;
+    dragRef.current = null;
+    setDrag(null);
+    setOverCol(null);
+    if (!cur) return;
+    const status = columnAt(e.clientX, e.clientY);
+    const task = tasks.find((t) => t.id === cur.id);
+    if (status && task && task.status !== status) patchTask.mutate({ id: cur.id, patch: { status } });
   };
 
   return (
-    <div className="flex gap-3 overflow-x-auto p-4 pb-6 min-h-[calc(100vh-12rem)]">
+    <div className="relative flex gap-3 overflow-x-auto p-4 pb-6 min-h-[calc(100vh-12rem)]">
       {COLUMNS.map((col) => {
         const items = tasks.filter((t) => t.status === col.key);
         return (
-          <div key={col.key} className="kanban-col w-72 shrink-0 flex flex-col" onDragOver={onDragOver} onDrop={(e) => onDrop(e, col.key)}>
+          <div
+            key={col.key}
+            data-col={col.key}
+            className={`kanban-col w-72 shrink-0 flex flex-col rounded-lg transition-colors ${
+              overCol === col.key ? "ring-2 ring-primary/60 bg-primary/5" : ""
+            }`}
+          >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium font-display">{col.label}</span>
@@ -129,7 +188,12 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
                 <TaskCard
                   key={task.id}
                   task={task}
-                  onDragStart={(e) => onDragStart(e, task.id)}
+                  members={members}
+                  dragging={drag?.id === task.id}
+                  onPointerDownHandle={(e) => startDrag(e, task)}
+                  onPointerMoveHandle={moveDrag}
+                  onPointerUpHandle={endDrag}
+                  onAssign={(assignee_id) => patchTask.mutate({ id: task.id, patch: { assignee_id } })}
                   onDelete={() => deleteTask.mutate(task.id)}
                 />
               ))}
@@ -138,21 +202,53 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
           </div>
         );
       })}
+
+      {drag && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md border border-primary/50 bg-card px-3 py-2 text-xs shadow-lg"
+          style={{ left: drag.x + 8, top: drag.y + 8, maxWidth: 220 }}
+        >
+          {drag.title}
+        </div>
+      )}
     </div>
   );
 }
 
-function TaskCard({ task, onDragStart, onDelete }: { task: Task; onDragStart: (e: DragEvent) => void; onDelete: () => void }) {
+function TaskCard({
+  task, members, dragging, onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
+}: {
+  task: Task;
+  members: Member[];
+  dragging: boolean;
+  onPointerDownHandle: (e: RPointerEvent) => void;
+  onPointerMoveHandle: (e: RPointerEvent) => void;
+  onPointerUpHandle: (e: RPointerEvent) => void;
+  onAssign: (id: string | null) => void;
+  onDelete: () => void;
+}) {
   const priorityClr: Record<Priority, string> = {
     urgent: "bg-red-500/15 text-red-300 border-red-500/30",
     high: "bg-orange-500/15 text-orange-300 border-orange-500/30",
     medium: "bg-blue-500/15 text-blue-300 border-blue-500/30",
     low: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
+  const assignee = members.find((m) => m.id === task.assignee_id) ?? null;
+
   return (
-    <Card draggable onDragStart={onDragStart} className="p-3 cursor-grab active:cursor-grabbing hover:border-primary/50 transition-colors group">
+    <Card className={`p-3 hover:border-primary/50 transition-all group ${dragging ? "opacity-40" : ""}`}>
       <div className="flex items-start gap-2">
-        <GripVertical className="size-3 text-muted-foreground mt-1 opacity-0 group-hover:opacity-100" />
+        <button
+          type="button"
+          aria-label="Arrastar tarefa"
+          className="mt-0.5 -ml-1 p-1 rounded cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
+          onPointerDown={onPointerDownHandle}
+          onPointerMove={onPointerMoveHandle}
+          onPointerUp={onPointerUpHandle}
+          onPointerCancel={onPointerUpHandle}
+        >
+          <GripVertical className="size-3.5" />
+        </button>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="text-sm font-medium leading-snug">{task.title}</div>
           {task.description && <div className="text-xs text-muted-foreground line-clamp-2">{task.description}</div>}
@@ -162,6 +258,28 @@ function TaskCard({ task, onDragStart, onDelete }: { task: Task; onDragStart: (e
               <Badge variant="outline" className="gap-1"><CalIcon className="size-3" />{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</Badge>
             )}
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
+          </div>
+          <div className="flex items-center gap-2">
+            <Avatar className="size-6">
+              {assignee?.avatar_url && <AvatarImage src={assignee.avatar_url} alt={assignee.full_name ?? "Responsável"} />}
+              <AvatarFallback className="text-[10px]">
+                {assignee ? initials(assignee.full_name) : <UserRound className="size-3" />}
+              </AvatarFallback>
+            </Avatar>
+            <Select
+              value={task.assignee_id ?? UNASSIGNED}
+              onValueChange={(v) => onAssign(v === UNASSIGNED ? null : v)}
+            >
+              <SelectTrigger className="h-7 text-xs flex-1" aria-label="Responsável">
+                <SelectValue placeholder="Sem responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
+                {members.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
         <AlertDialog>
@@ -197,12 +315,14 @@ function TaskCard({ task, onDragStart, onDelete }: { task: Task; onDragStart: (e
 
 export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
+  const { data: members = [] } = useOrgMembers();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState("");
+  const [assignee, setAssignee] = useState<string>(UNASSIGNED);
 
   const create = useMutation({
     mutationFn: async () => {
@@ -215,14 +335,14 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
         project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
-        created_by: u.user?.id, assignee_id: null,
+        created_by: u.user?.id, assignee_id: assignee === UNASSIGNED ? null : assignee,
       });
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
       qc.invalidateQueries({ queryKey: ["tasks", areaId] });
-      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels("");
+      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels(""); setAssignee(UNASSIGNED);
     },
     onError: (e: any) => toast.error(e.message),
   });
@@ -253,6 +373,18 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
               </Select>
             </div>
             <div><Label>Prazo</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
+          </div>
+          <div>
+            <Label>Responsável</Label>
+            <Select value={assignee} onValueChange={setAssignee}>
+              <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
+                {members.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div><Label>Etiquetas (separadas por vírgula)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></div>
         </div>
