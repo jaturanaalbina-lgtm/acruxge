@@ -125,6 +125,26 @@ function InvitesPage() {
       </div>
 
       <Card className="glass-panel p-5">
+        <h2 className="text-sm font-semibold mb-1">Link de convite da equipe</h2>
+        <p className="text-xs text-muted-foreground mb-3">
+          Compartilhe este link com quem quiser entrar em {activeOrg?.name ?? "sua equipe"}. Cada pedido aparece em “Solicitações” para você aprovar.
+        </p>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input readOnly value={teamLink} onFocus={(e) => e.currentTarget.select()} className="font-mono text-xs" />
+          <Button
+            variant="secondary"
+            onClick={async () => {
+              await navigator.clipboard.writeText(teamLink);
+              toast.success("Link da equipe copiado");
+            }}
+            disabled={!activeOrg?.slug}
+          >
+            <Copy className="size-4 mr-2" /> Copiar link
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="glass-panel p-5">
         <h2 className="text-sm font-semibold mb-3">Novo convite</h2>
         <div className="grid md:grid-cols-2 gap-3">
           <div>
