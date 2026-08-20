@@ -251,6 +251,14 @@ function PontoPage() {
 
   const liveSeconds = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 1000)) : 0;
   const liveMinutes = Math.floor(liveSeconds / 60);
+  useEffect(() => {
+  if (!open) {
+    void clearPontoNotification();
+    return;
+  }
+
+  void showPontoNotification(liveSeconds);
+}, [open?.id, liveMinutes]);
 
   const totalMin = useMemo(
     () => entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0),
