@@ -61,7 +61,43 @@ function fmtDate(d: string) {
 function fmtDateLong(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
+const PONTO_NOTIFICATION_TAG = "ponto-em-andamento";
 
+async function getPontoWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+
+  await navigator.serviceWorker.register("/ponto-notification-sw.js");
+  return navigator.serviceWorker.ready;
+}
+
+async function showPontoNotification(seconds: number) {
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    return;
+  }
+
+  const registration = await getPontoWorker();
+  if (!registration) return;
+
+  await registration.showNotification("Ponto em andamento", {
+    body: `Tempo trabalhado: ${fmtHMS(seconds)}`,
+    icon: "/favicon.ico",
+    tag: PONTO_NOTIFICATION_TAG,
+    renotify: false,
+    requireInteraction: true,
+    data: { url: "/ponto" },
+  });
+}
+
+async function clearPontoNotification() {
+  if (!("serviceWorker" in navigator)) return;
+
+  const registration = await navigator.serviceWorker.ready;
+  const notifications = await registration.getNotifications({
+    tag: PONTO_NOTIFICATION_TAG,
+  });
+
+  notifications.forEach((notification) => notification.close());
+}
 function PontoPage() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
