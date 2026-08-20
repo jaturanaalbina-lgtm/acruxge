@@ -421,9 +421,19 @@ function PontoPage() {
           </div>
           <div className="flex gap-2">
             {!open ? (
-              <Button size="lg" onClick={() => startMut.mutate()} disabled={startMut.isPending}>
-                <Play /> Iniciar ponto
-              </Button>
+             <Button
+  size="lg"
+  onClick={() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+
+    startMut.mutate();
+  }}
+  disabled={startMut.isPending}
+>
+  <Play /> Iniciar ponto
+</Button>
             ) : (
               <Button size="lg" variant="destructive" onClick={openStopDialog}>
                 <Square /> Encerrar ponto
