@@ -208,13 +208,24 @@ function PontoPage() {
   const liveSeconds = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 1000)) : 0;
   const liveMinutes = Math.floor(liveSeconds / 60);
   useEffect(() => {
-  if (!open) {
-    void clearPontoNotification();
-    return;
-  }
+    if (!open) {
+      void clearPontoNotification();
+      return;
+    }
+    void showPontoNotification(liveSeconds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open?.id, liveMinutes]);
 
-  void showPontoNotification(liveSeconds);
-}, [open?.id, liveMinutes]);
+  // Encerrar ponto a partir da notificação (?stop=1)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stop") === "1" && open) {
+      setStopOpen(true);
+      window.history.replaceState({}, "", "/ponto");
+    }
+  }, [open?.id]);
+
 
   const totalMin = useMemo(
     () => entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0),
