@@ -138,12 +138,15 @@ function PontoPage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (entry) => {
+    onSuccess: async (entry) => {
       toast.success("Ponto iniciado");
       qc.setQueryData(["time-open", user.id], entry);
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+      const ok = await ensureNotificationPermission();
+      if (ok) void showPontoNotification(0);
     },
+
     onError: (e: any) => toast.error(e.message),
   });
 
