@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Cpu, KanbanSquare, Clock, CalendarDays, ShieldCheck, Palette, ArrowRight } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export const Route = createFileRoute("/")({
   head: () => ({
