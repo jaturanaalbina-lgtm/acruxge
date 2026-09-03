@@ -55,9 +55,8 @@ function LandingPage() {
 
       <header className="max-w-5xl mx-auto flex items-center justify-between px-5 py-5 animate-rise">
         <div className="group flex items-center gap-2.5">
-          <div className="size-9 rounded-lg bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center shadow-lg shadow-acrux/40 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
-            <Cpu className="size-4.5 text-white" />
-          </div>
+          <BrandLogo className="size-9 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" />
+
           <span className="font-display font-semibold tracking-tight text-sm sm:text-base">
             GE <span className="text-muted-foreground font-sans font-normal">by</span> Acrux ROBOCEP
           </span>
