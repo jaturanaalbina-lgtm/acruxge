@@ -130,11 +130,8 @@ function AuthPage() {
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,color-mix(in_oklab,var(--acrux-glow)_25%,transparent),transparent_60%)]" />
       <div className="w-full max-w-md">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="size-10 rounded-lg bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center shadow-lg shadow-acrux/40 overflow-hidden">
-            {org?.logo_url
-              ? <img src={org.logo_url} alt={`Logo ${org.name}`} className="size-full object-cover" />
-              : <Cpu className="size-5 text-white" />}
-          </div>
+          <BrandLogo src={org?.logo_url} alt={org ? `Logo ${org.name}` : "GE by Acrux ROBOCEP"} className="size-10" />
+
           <div>
             <h1 className="text-lg font-semibold tracking-tight font-display">{org?.name ?? "GE by Acrux ROBOCEP"}</h1>
             <p className="text-xs text-muted-foreground">
