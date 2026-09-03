@@ -5,6 +5,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { SidebarMenuButton } from "@/components/ui/sidebar";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export function OrgSwitcher() {
   const { orgs, activeOrg, activeOrgId, setActiveOrgId, isAdmin } = useActiveOrg();
