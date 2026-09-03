@@ -20,6 +20,12 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryEditDialog";
+import {
+  clearPontoNotification,
+  ensureNotificationPermission,
+  fmtHMS,
+  showPontoNotification,
+} from "@/lib/ponto-notification";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   ssr: false,
