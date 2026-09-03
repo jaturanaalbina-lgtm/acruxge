@@ -20,6 +20,12 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryEditDialog";
+import {
+  clearPontoNotification,
+  ensureNotificationPermission,
+  fmtHMS,
+  showPontoNotification,
+} from "@/lib/ponto-notification";
 
 export const Route = createFileRoute("/_authenticated/ponto")({
   ssr: false,
@@ -44,14 +50,6 @@ function fmtDuration(mins: number) {
   const m = mins % 60;
   return `${String(h).padStart(2, "0")}h${String(m).padStart(2, "0")}`;
 }
-function fmtHMS(secs: number) {
-  const d = Math.floor(secs / 86400);
-  const h = Math.floor((secs % 86400) / 3600);
-  const m = Math.floor((secs % 3600) / 60);
-  const s = secs % 60;
-  const base = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  return d > 0 ? `${d}d ${base}` : base;
-}
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
@@ -61,43 +59,7 @@ function fmtDate(d: string) {
 function fmtDateLong(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
-const PONTO_NOTIFICATION_TAG = "ponto-em-andamento";
 
-async function getPontoWorker() {
-  if (!("serviceWorker" in navigator)) return null;
-
-  await navigator.serviceWorker.register("/ponto-notification-sw.js");
-  return navigator.serviceWorker.ready;
-}
-
-async function showPontoNotification(seconds: number) {
-  if (!("Notification" in window) || Notification.permission !== "granted") {
-    return;
-  }
-
-  const registration = await getPontoWorker();
-  if (!registration) return;
-
-  await registration.showNotification("Ponto em andamento", {
-    body: `Tempo trabalhado: ${fmtHMS(seconds)}`,
-    icon: "/favicon.ico",
-    tag: PONTO_NOTIFICATION_TAG,
-    renotify: false,
-    requireInteraction: true,
-    data: { url: "/ponto" },
-  });
-}
-
-async function clearPontoNotification() {
-  if (!("serviceWorker" in navigator)) return;
-
-  const registration = await navigator.serviceWorker.ready;
-  const notifications = await registration.getNotifications({
-    tag: PONTO_NOTIFICATION_TAG,
-  });
-
-  notifications.forEach((notification) => notification.close());
-}
 function PontoPage() {
   const { user } = Route.useRouteContext();
   const qc = useQueryClient();
@@ -176,12 +138,15 @@ function PontoPage() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (entry) => {
+    onSuccess: async (entry) => {
       toast.success("Ponto iniciado");
       qc.setQueryData(["time-open", user.id], entry);
       qc.invalidateQueries({ queryKey: ["time-open", user.id] });
       qc.invalidateQueries({ queryKey: ["time-entries", user.id] });
+      const ok = await ensureNotificationPermission();
+      if (ok) void showPontoNotification(0);
     },
+
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -252,13 +217,24 @@ function PontoPage() {
   const liveSeconds = open ? Math.max(0, Math.floor((now - new Date(open.clock_in).getTime()) / 1000)) : 0;
   const liveMinutes = Math.floor(liveSeconds / 60);
   useEffect(() => {
-  if (!open) {
-    void clearPontoNotification();
-    return;
-  }
+    if (!open) {
+      void clearPontoNotification();
+      return;
+    }
+    void showPontoNotification(liveSeconds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open?.id, liveMinutes]);
 
-  void showPontoNotification(liveSeconds);
-}, [open?.id, liveMinutes]);
+  // Encerrar ponto a partir da notificação (?stop=1)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stop") === "1" && open) {
+      setStopOpen(true);
+      window.history.replaceState({}, "", "/ponto");
+    }
+  }, [open?.id]);
+
 
   const totalMin = useMemo(
     () => entries.reduce((s, e) => s + (e.duration_minutes ?? 0), 0),
