@@ -14,11 +14,8 @@ export function OrgSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
-          <div className="size-8 rounded-md bg-gradient-to-br from-acrux to-acrux-glow flex items-center justify-center overflow-hidden shrink-0">
-            {activeOrg.logo_url
-              ? <img src={activeOrg.logo_url} alt="" className="size-full object-cover" />
-              : <span className="text-[11px] font-bold text-white">{activeOrg.name.slice(0, 2).toUpperCase()}</span>}
-          </div>
+          <BrandLogo src={activeOrg.logo_url} alt={`Logo ${activeOrg.name}`} className="size-8 rounded-md shrink-0" />
+
           <div className="flex-1 text-left group-data-[collapsible=icon]:hidden min-w-0">
             <div className="text-sm font-semibold truncate">{activeOrg.name}</div>
             <div className="text-[10px] text-muted-foreground capitalize">{activeOrg.role}</div>
