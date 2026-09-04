@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -72,13 +73,39 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   const { data: tasks = [] } = useQuery({
     queryKey: key,
     queryFn: async () => {
+      // tarefas compartilhadas com esta área
+      const { data: shared } = await supabase.from("task_areas").select("task_id").eq("area_id", areaId);
+      const sharedIds = (shared ?? []).map((r: any) => r.task_id as string);
+
       let q = supabase.from("tasks").select("*").eq("area_id", areaId);
       q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
       const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Task[];
+      const own = (data ?? []) as Task[];
+
+      const missing = sharedIds.filter((id) => !own.some((t) => t.id === id));
+      if (!missing.length) return own;
+      const { data: extra, error: extraErr } = await supabase
+        .from("tasks").select("*").in("id", missing).order("created_at", { ascending: false });
+      if (extraErr) throw extraErr;
+      return [...own, ...((extra ?? []) as Task[])];
     },
   });
+
+  // responsáveis adicionais (tarefas compartilhadas)
+  const taskIds = tasks.map((t) => t.id);
+  const { data: extraAssignees = {} } = useQuery({
+    queryKey: ["task-assignees", taskIds.join(",")],
+    enabled: taskIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("task_assignees").select("task_id,user_id").in("task_id", taskIds);
+      if (error) throw error;
+      const map: Record<string, string[]> = {};
+      for (const r of (data ?? []) as any[]) (map[r.task_id] ||= []).push(r.user_id);
+      return map;
+    },
+  });
+
 
   useEffect(() => {
     const channel = supabase
@@ -189,6 +216,9 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
                   key={task.id}
                   task={task}
                   members={members}
+                  coAssigneeIds={(extraAssignees as Record<string, string[]>)[task.id] ?? []}
+                  shared={task.area_id !== areaId}
+
                   dragging={drag?.id === task.id}
                   onPointerDownHandle={(e) => startDrag(e, task)}
                   onPointerMoveHandle={moveDrag}
@@ -216,10 +246,13 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 }
 
 function TaskCard({
-  task, members, dragging, onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
+  task, members, coAssigneeIds = [], shared = false, dragging,
+  onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
 }: {
   task: Task;
   members: Member[];
+  coAssigneeIds?: string[];
+  shared?: boolean;
   dragging: boolean;
   onPointerDownHandle: (e: RPointerEvent) => void;
   onPointerMoveHandle: (e: RPointerEvent) => void;
@@ -234,6 +267,8 @@ function TaskCard({
     low: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
   const assignee = members.find((m) => m.id === task.assignee_id) ?? null;
+  const coAssignees = members.filter((m) => coAssigneeIds.includes(m.id) && m.id !== task.assignee_id);
+
 
   return (
     <Card className={`p-3 hover:border-primary/50 transition-all group ${dragging ? "opacity-40" : ""}`}>
@@ -258,7 +293,14 @@ function TaskCard({
               <Badge variant="outline" className="gap-1"><CalIcon className="size-3" />{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</Badge>
             )}
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
+            {shared && <Badge variant="outline" className="border-acrux/50 text-acrux-glow">Compartilhada</Badge>}
+            {coAssignees.map((m) => (
+              <Badge key={m.id} variant="secondary" className="gap-1">
+                <UserRound className="size-3" />{m.full_name ?? "Membro"}
+              </Badge>
+            ))}
           </div>
+
           <div className="flex items-center gap-2">
             <Avatar className="size-6">
               {assignee?.avatar_url && <AvatarImage src={assignee.avatar_url} alt={assignee.full_name ?? "Responsável"} />}
@@ -315,6 +357,7 @@ function TaskCard({
 
 export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
   const { data: members = [] } = useOrgMembers();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -322,7 +365,24 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState("");
-  const [assignee, setAssignee] = useState<string>(UNASSIGNED);
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [extraAreas, setExtraAreas] = useState<string[]>([]);
+
+  const { data: areas = [] } = useQuery({
+    queryKey: ["areas", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("areas").select("id,name")
+        .eq("organization_id", activeOrgId!).order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const reset = () => {
+    setOpen(false); setTitle(""); setDescription(""); setDueDate("");
+    setLabels(""); setAssignees([]); setExtraAreas([]);
+  };
 
   const create = useMutation({
     mutationFn: async () => {
@@ -330,25 +390,40 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
       const { data: area, error: areaErr } = await supabase
         .from("areas").select("organization_id").eq("id", areaId).single();
       if (areaErr) throw areaErr;
-      const { error } = await supabase.from("tasks").insert({
+      const { data: task, error } = await supabase.from("tasks").insert({
         area_id: areaId, organization_id: area.organization_id,
         project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
-        created_by: u.user?.id, assignee_id: assignee === UNASSIGNED ? null : assignee,
-      });
+        created_by: u.user?.id, assignee_id: assignees[0] ?? null,
+      }).select("id").single();
       if (error) throw error;
+
+      const allAreas = Array.from(new Set([areaId, ...extraAreas]));
+      const { error: areasErr } = await supabase.from("task_areas")
+        .insert(allAreas.map((a) => ({ task_id: task.id, area_id: a })));
+      if (areasErr) throw areasErr;
+
+      if (assignees.length) {
+        const { error: asErr } = await supabase.from("task_assignees")
+          .insert(assignees.map((uid) => ({ task_id: task.id, user_id: uid })));
+        if (asErr) throw asErr;
+      }
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
-      qc.invalidateQueries({ queryKey: ["tasks", areaId] });
-      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels(""); setAssignee(UNASSIGNED);
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task-assignees"] });
+      reset();
     },
     onError: (e: any) => toast.error(e.message),
   });
 
+  const toggle = (list: string[], set: (v: string[]) => void, id: string) =>
+    set(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : reset())}>
       <DialogTrigger asChild>
         {compact
           ? <Button variant="ghost" size="icon" className="size-6"><Plus className="size-3" /></Button>
@@ -375,16 +450,33 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
             <div><Label>Prazo</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
           </div>
           <div>
-            <Label>Responsável</Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
-                {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Responsáveis</Label>
+            <div className="mt-1 max-h-32 overflow-y-auto space-y-1.5 rounded-md border border-border p-2">
+              {members.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={assignees.includes(m.id)}
+                    onCheckedChange={() => toggle(assignees, setAssignees, m.id)}
+                  />
+                  {m.full_name ?? "Membro"}
+                </label>
+              ))}
+              {!members.length && <div className="text-xs text-muted-foreground">Nenhum membro ativo.</div>}
+            </div>
+          </div>
+          <div>
+            <Label>Também mostrar nestas áreas</Label>
+            <div className="mt-1 max-h-32 overflow-y-auto space-y-1.5 rounded-md border border-border p-2">
+              {areas.filter((a) => a.id !== areaId).map((a) => (
+                <label key={a.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={extraAreas.includes(a.id)}
+                    onCheckedChange={() => toggle(extraAreas, setExtraAreas, a.id)}
+                  />
+                  {a.name}
+                </label>
+              ))}
+            </div>
           </div>
           <div><Label>Etiquetas (separadas por vírgula)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></div>
         </div>
@@ -395,3 +487,4 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
     </Dialog>
   );
 }
+
