@@ -292,7 +292,14 @@ function TaskCard({
               <Badge variant="outline" className="gap-1"><CalIcon className="size-3" />{new Date(task.due_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</Badge>
             )}
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
+            {shared && <Badge variant="outline" className="border-acrux/50 text-acrux-glow">Compartilhada</Badge>}
+            {coAssignees.map((m) => (
+              <Badge key={m.id} variant="secondary" className="gap-1">
+                <UserRound className="size-3" />{m.full_name ?? "Membro"}
+              </Badge>
+            ))}
           </div>
+
           <div className="flex items-center gap-2">
             <Avatar className="size-6">
               {assignee?.avatar_url && <AvatarImage src={assignee.avatar_url} alt={assignee.full_name ?? "Responsável"} />}
