@@ -72,13 +72,39 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   const { data: tasks = [] } = useQuery({
     queryKey: key,
     queryFn: async () => {
+      // tarefas compartilhadas com esta área
+      const { data: shared } = await supabase.from("task_areas").select("task_id").eq("area_id", areaId);
+      const sharedIds = (shared ?? []).map((r: any) => r.task_id as string);
+
       let q = supabase.from("tasks").select("*").eq("area_id", areaId);
       q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
       const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
-      return data as Task[];
+      const own = (data ?? []) as Task[];
+
+      const missing = sharedIds.filter((id) => !own.some((t) => t.id === id));
+      if (!missing.length) return own;
+      const { data: extra, error: extraErr } = await supabase
+        .from("tasks").select("*").in("id", missing).order("created_at", { ascending: false });
+      if (extraErr) throw extraErr;
+      return [...own, ...((extra ?? []) as Task[])];
     },
   });
+
+  // responsáveis adicionais (tarefas compartilhadas)
+  const taskIds = tasks.map((t) => t.id);
+  const { data: extraAssignees = {} } = useQuery({
+    queryKey: ["task-assignees", taskIds.join(",")],
+    enabled: taskIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("task_assignees").select("task_id,user_id").in("task_id", taskIds);
+      if (error) throw error;
+      const map: Record<string, string[]> = {};
+      for (const r of (data ?? []) as any[]) (map[r.task_id] ||= []).push(r.user_id);
+      return map;
+    },
+  });
+
 
   useEffect(() => {
     const channel = supabase
