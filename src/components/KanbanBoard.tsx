@@ -245,10 +245,13 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 }
 
 function TaskCard({
-  task, members, dragging, onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
+  task, members, coAssigneeIds = [], shared = false, dragging,
+  onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
 }: {
   task: Task;
   members: Member[];
+  coAssigneeIds?: string[];
+  shared?: boolean;
   dragging: boolean;
   onPointerDownHandle: (e: RPointerEvent) => void;
   onPointerMoveHandle: (e: RPointerEvent) => void;
@@ -263,6 +266,8 @@ function TaskCard({
     low: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
   const assignee = members.find((m) => m.id === task.assignee_id) ?? null;
+  const coAssignees = members.filter((m) => coAssigneeIds.includes(m.id) && m.id !== task.assignee_id);
+
 
   return (
     <Card className={`p-3 hover:border-primary/50 transition-all group ${dragging ? "opacity-40" : ""}`}>
