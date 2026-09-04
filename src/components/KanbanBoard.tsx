@@ -215,6 +215,9 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
                   key={task.id}
                   task={task}
                   members={members}
+                  coAssigneeIds={(extraAssignees as Record<string, string[]>)[task.id] ?? []}
+                  shared={task.area_id !== areaId}
+
                   dragging={drag?.id === task.id}
                   onPointerDownHandle={(e) => startDrag(e, task)}
                   onPointerMoveHandle={moveDrag}
