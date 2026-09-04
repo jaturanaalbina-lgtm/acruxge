@@ -356,6 +356,7 @@ function TaskCard({
 
 export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
+  const { activeOrgId } = useActiveOrg();
   const { data: members = [] } = useOrgMembers();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
@@ -363,7 +364,24 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState("");
-  const [assignee, setAssignee] = useState<string>(UNASSIGNED);
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [extraAreas, setExtraAreas] = useState<string[]>([]);
+
+  const { data: areas = [] } = useQuery({
+    queryKey: ["areas", activeOrgId],
+    enabled: !!activeOrgId,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("areas").select("id,name")
+        .eq("organization_id", activeOrgId!).order("sort_order");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const reset = () => {
+    setOpen(false); setTitle(""); setDescription(""); setDueDate("");
+    setLabels(""); setAssignees([]); setExtraAreas([]);
+  };
 
   const create = useMutation({
     mutationFn: async () => {
@@ -371,25 +389,40 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
       const { data: area, error: areaErr } = await supabase
         .from("areas").select("organization_id").eq("id", areaId).single();
       if (areaErr) throw areaErr;
-      const { error } = await supabase.from("tasks").insert({
+      const { data: task, error } = await supabase.from("tasks").insert({
         area_id: areaId, organization_id: area.organization_id,
         project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
-        created_by: u.user?.id, assignee_id: assignee === UNASSIGNED ? null : assignee,
-      });
+        created_by: u.user?.id, assignee_id: assignees[0] ?? null,
+      }).select("id").single();
       if (error) throw error;
+
+      const allAreas = Array.from(new Set([areaId, ...extraAreas]));
+      const { error: areasErr } = await supabase.from("task_areas")
+        .insert(allAreas.map((a) => ({ task_id: task.id, area_id: a })));
+      if (areasErr) throw areasErr;
+
+      if (assignees.length) {
+        const { error: asErr } = await supabase.from("task_assignees")
+          .insert(assignees.map((uid) => ({ task_id: task.id, user_id: uid })));
+        if (asErr) throw asErr;
+      }
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
-      qc.invalidateQueries({ queryKey: ["tasks", areaId] });
-      setOpen(false); setTitle(""); setDescription(""); setDueDate(""); setLabels(""); setAssignee(UNASSIGNED);
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["task-assignees"] });
+      reset();
     },
     onError: (e: any) => toast.error(e.message),
   });
 
+  const toggle = (list: string[], set: (v: string[]) => void, id: string) =>
+    set(list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : reset())}>
       <DialogTrigger asChild>
         {compact
           ? <Button variant="ghost" size="icon" className="size-6"><Plus className="size-3" /></Button>
@@ -416,16 +449,33 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
             <div><Label>Prazo</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
           </div>
           <div>
-            <Label>Responsável</Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
-                {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Responsáveis</Label>
+            <div className="mt-1 max-h-32 overflow-y-auto space-y-1.5 rounded-md border border-border p-2">
+              {members.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={assignees.includes(m.id)}
+                    onCheckedChange={() => toggle(assignees, setAssignees, m.id)}
+                  />
+                  {m.full_name ?? "Membro"}
+                </label>
+              ))}
+              {!members.length && <div className="text-xs text-muted-foreground">Nenhum membro ativo.</div>}
+            </div>
+          </div>
+          <div>
+            <Label>Também mostrar nestas áreas</Label>
+            <div className="mt-1 max-h-32 overflow-y-auto space-y-1.5 rounded-md border border-border p-2">
+              {areas.filter((a) => a.id !== areaId).map((a) => (
+                <label key={a.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={extraAreas.includes(a.id)}
+                    onCheckedChange={() => toggle(extraAreas, setExtraAreas, a.id)}
+                  />
+                  {a.name}
+                </label>
+              ))}
+            </div>
           </div>
           <div><Label>Etiquetas (separadas por vírgula)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></div>
         </div>
@@ -436,3 +486,4 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
     </Dialog>
   );
 }
+
