@@ -65,12 +65,22 @@ function initials(name?: string | null) {
   return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
+/** Nenhuma tarefa pode sumir: situações antigas caem nas 3 colunas atuais. */
+const COLUMN_OF: Record<TaskStatus, TaskStatus> = {
+  backlog: "todo",
+  todo: "todo",
+  in_progress: "in_progress",
+  review: "in_progress",
+  approval: "in_progress",
+  done: "done",
+};
+
 export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?: string | null }) {
   const qc = useQueryClient();
   const key = ["tasks", areaId, projectId ?? "area"];
   const { data: members = [] } = useOrgMembers();
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isLoading, isError, refetch } = useQuery({
     queryKey: key,
     queryFn: async () => {
       // tarefas compartilhadas com esta área
@@ -79,14 +89,18 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
       let q = supabase.from("tasks").select("*").eq("area_id", areaId);
       q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
-      const { data, error } = await q.order("created_at", { ascending: false });
+      const { data, error } = await q
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const own = (data ?? []) as Task[];
 
       const missing = sharedIds.filter((id) => !own.some((t) => t.id === id));
       if (!missing.length) return own;
       const { data: extra, error: extraErr } = await supabase
-        .from("tasks").select("*").in("id", missing).order("created_at", { ascending: false });
+        .from("tasks").select("*").in("id", missing)
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
       if (extraErr) throw extraErr;
       return [...own, ...((extra ?? []) as Task[])];
     },
@@ -94,8 +108,9 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
   // responsáveis adicionais (tarefas compartilhadas)
   const taskIds = tasks.map((t) => t.id);
+  const assigneesKey = [...taskIds].sort().join(",");
   const { data: extraAssignees = {} } = useQuery({
-    queryKey: ["task-assignees", taskIds.join(",")],
+    queryKey: ["task-assignees", areaId, assigneesKey],
     enabled: taskIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase.from("task_assignees").select("task_id,user_id").in("task_id", taskIds);
@@ -108,13 +123,11 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
 
   useEffect(() => {
+    const invalidate = () => qc.invalidateQueries({ queryKey: ["tasks"] });
     const channel = supabase
-      .channel(`tasks:${areaId}:${projectId ?? "area"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks", filter: `area_id=eq.${areaId}` },
-        () => qc.invalidateQueries({ queryKey: key }),
-      )
+      .channel(`tasks-board:${areaId}:${projectId ?? "area"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_areas" }, invalidate)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
