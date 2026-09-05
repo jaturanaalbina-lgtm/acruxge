@@ -65,12 +65,22 @@ function initials(name?: string | null) {
   return name.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
+/** Nenhuma tarefa pode sumir: situações antigas caem nas 3 colunas atuais. */
+const COLUMN_OF: Record<TaskStatus, TaskStatus> = {
+  backlog: "todo",
+  todo: "todo",
+  in_progress: "in_progress",
+  review: "in_progress",
+  approval: "in_progress",
+  done: "done",
+};
+
 export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?: string | null }) {
   const qc = useQueryClient();
   const key = ["tasks", areaId, projectId ?? "area"];
   const { data: members = [] } = useOrgMembers();
 
-  const { data: tasks = [] } = useQuery({
+  const { data: tasks = [], isLoading, isError, refetch } = useQuery({
     queryKey: key,
     queryFn: async () => {
       // tarefas compartilhadas com esta área
@@ -79,14 +89,18 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
       let q = supabase.from("tasks").select("*").eq("area_id", areaId);
       q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
-      const { data, error } = await q.order("created_at", { ascending: false });
+      const { data, error } = await q
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       const own = (data ?? []) as Task[];
 
       const missing = sharedIds.filter((id) => !own.some((t) => t.id === id));
       if (!missing.length) return own;
       const { data: extra, error: extraErr } = await supabase
-        .from("tasks").select("*").in("id", missing).order("created_at", { ascending: false });
+        .from("tasks").select("*").in("id", missing)
+        .order("position", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: false });
       if (extraErr) throw extraErr;
       return [...own, ...((extra ?? []) as Task[])];
     },
@@ -94,8 +108,9 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
   // responsáveis adicionais (tarefas compartilhadas)
   const taskIds = tasks.map((t) => t.id);
+  const assigneesKey = [...taskIds].sort().join(",");
   const { data: extraAssignees = {} } = useQuery({
-    queryKey: ["task-assignees", taskIds.join(",")],
+    queryKey: ["task-assignees", areaId, assigneesKey],
     enabled: taskIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase.from("task_assignees").select("task_id,user_id").in("task_id", taskIds);
@@ -108,13 +123,11 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
 
   useEffect(() => {
+    const invalidate = () => qc.invalidateQueries({ queryKey: ["tasks"] });
     const channel = supabase
-      .channel(`tasks:${areaId}:${projectId ?? "area"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "tasks", filter: `area_id=eq.${areaId}` },
-        () => qc.invalidateQueries({ queryKey: key }),
-      )
+      .channel(`tasks-board:${areaId}:${projectId ?? "area"}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_areas" }, invalidate)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -155,10 +168,22 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
+  const reorder = useMutation({
+    mutationFn: async (updates: { id: string; status: TaskStatus; position: number }[]) => {
+      for (const u of updates) {
+        const { error } = await supabase.from("tasks")
+          .update({ status: u.status, position: u.position }).eq("id", u.id);
+        if (error) throw error;
+      }
+    },
+    onError: () => { toast.error("Não foi possível mover a tarefa."); qc.invalidateQueries({ queryKey: key }); },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
+  });
+
   // Pointer-based drag & drop (works with mouse and touch)
   const [drag, setDrag] = useState<{ id: string; title: string; x: number; y: number } | null>(null);
   const [overCol, setOverCol] = useState<TaskStatus | null>(null);
-  const dragRef = useRef<{ id: string } | null>(null);
+  const dragRef = useRef<{ id: string; startX: number; startY: number; active: boolean } | null>(null);
 
   const columnAt = (x: number, y: number): TaskStatus | null => {
     const el = document.elementFromPoint(x, y) as HTMLElement | null;
@@ -166,15 +191,38 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     return (col?.dataset.col as TaskStatus) ?? null;
   };
 
+  /** Índice onde o cartão deve entrar dentro da coluna, pela posição do ponteiro. */
+  const indexAt = (colKey: TaskStatus, y: number, draggedId: string) => {
+    const list = Array.from(
+      document.querySelectorAll<HTMLElement>(`[data-col="${colKey}"] [data-task]`),
+    ).filter((el) => el.dataset.task !== draggedId);
+    let idx = list.length;
+    for (let i = 0; i < list.length; i++) {
+      const r = list[i].getBoundingClientRect();
+      if (y < r.top + r.height / 2) { idx = i; break; }
+    }
+    return idx;
+  };
+
   const startDrag = (e: RPointerEvent, task: Task) => {
-    e.preventDefault();
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-    dragRef.current = { id: task.id };
-    setDrag({ id: task.id, title: task.title, x: e.clientX, y: e.clientY });
+    if ((e.target as HTMLElement).closest("button,select,[role='combobox'],a,input")) {
+      const handle = (e.target as HTMLElement).closest("[data-drag-handle]");
+      if (!handle) return;
+    }
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    dragRef.current = { id: task.id, startX: e.clientX, startY: e.clientY, active: false };
   };
 
   const moveDrag = (e: RPointerEvent) => {
-    if (!dragRef.current) return;
+    const cur = dragRef.current;
+    if (!cur) return;
+    if (!cur.active) {
+      const dist = Math.hypot(e.clientX - cur.startX, e.clientY - cur.startY);
+      if (dist < 5) return;
+      cur.active = true;
+      const t = tasks.find((x) => x.id === cur.id);
+      setDrag({ id: cur.id, title: t?.title ?? "", x: e.clientX, y: e.clientY });
+    }
     e.preventDefault();
     setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
     setOverCol(columnAt(e.clientX, e.clientY));
@@ -185,16 +233,60 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     dragRef.current = null;
     setDrag(null);
     setOverCol(null);
-    if (!cur) return;
-    const status = columnAt(e.clientX, e.clientY);
+    if (!cur || !cur.active) return;
+
+    const colKey = columnAt(e.clientX, e.clientY);
     const task = tasks.find((t) => t.id === cur.id);
-    if (status && task && task.status !== status) patchTask.mutate({ id: cur.id, patch: { status } });
+    if (!colKey || !task) return;
+
+    const target = tasks.filter((t) => COLUMN_OF[t.status] === colKey && t.id !== task.id);
+    const idx = indexAt(colKey, e.clientY, task.id);
+    target.splice(idx, 0, { ...task, status: colKey });
+
+    const updates = target.map((t, i) => ({ id: t.id, status: colKey, position: i }));
+    qc.setQueryData<Task[]>(key, (old = []) =>
+      old.map((t) => {
+        const u = updates.find((x) => x.id === t.id);
+        return u ? { ...t, status: u.status, position: u.position } : t;
+      }),
+    );
+    reorder.mutate(updates.filter((u) => {
+      const orig = tasks.find((t) => t.id === u.id)!;
+      return orig.status !== u.status || orig.position !== u.position;
+    }));
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex gap-3 overflow-x-auto p-4">
+        {COLUMNS.map((c) => (
+          <div key={c.key} className="w-72 shrink-0 space-y-2">
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Não conseguimos carregar as tarefas desta área.</p>
+        <Button size="sm" variant="outline" onClick={() => refetch()}>
+          <RefreshCw className="size-4" /> Tentar de novo
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex gap-3 overflow-x-auto p-4 pb-6 min-h-[calc(100vh-12rem)]">
       {COLUMNS.map((col) => {
-        const items = tasks.filter((t) => t.status === col.key);
+        const items = tasks
+          .filter((t) => COLUMN_OF[t.status] === col.key)
+          .sort((a, b) => (a.position ?? 9999) - (b.position ?? 9999));
         return (
           <div
             key={col.key}

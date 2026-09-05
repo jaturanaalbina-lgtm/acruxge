@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ActiveOrgProvider, useActiveOrg } from "@/contexts/active-org";
+import { NotificationBell } from "@/components/NotificationBell";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
@@ -42,6 +43,7 @@ function Shell() {
             <div className="text-xs text-muted-foreground truncate">
               {activeOrg?.brand_name || activeOrg?.name} · <span className="font-display">GE by Acrux ROBOCEP</span>
             </div>
+            <div className="ml-auto"><NotificationBell /></div>
           </header>
           <main className="flex-1 min-w-0">
             <Outlet />
