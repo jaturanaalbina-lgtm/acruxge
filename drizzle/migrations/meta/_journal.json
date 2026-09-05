@@ -15,6 +15,13 @@
       "when": 1788609275626,
       "tag": "0001_restrict_org_members_self_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788611438590,
+      "tag": "0002_create_notifications",
+      "breakpoints": true
     }
   ]
 }
