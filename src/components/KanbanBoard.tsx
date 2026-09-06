@@ -16,7 +16,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
