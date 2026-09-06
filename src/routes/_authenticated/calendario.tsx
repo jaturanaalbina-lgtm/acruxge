@@ -377,7 +377,15 @@ function CalendarPage() {
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {evs.slice(0, 2).map((e) => (
-                    <div key={e.id} className="truncate text-[10px] px-1 rounded" style={{ backgroundColor: `color-mix(in oklab, ${e.color} 35%, transparent)` }}>
+                    <div
+                      key={e.id}
+                      draggable={canEdit(e)}
+                      onDragStart={() => setDragEvId(e.id)}
+                      onDragEnd={() => setDragEvId(null)}
+                      title={canEdit(e) ? "Arraste para outro dia" : e.title}
+                      className={`truncate text-[10px] px-1 rounded ${canEdit(e) ? "cursor-grab active:cursor-grabbing" : ""}`}
+                      style={{ backgroundColor: `color-mix(in oklab, ${e.color} 35%, transparent)` }}
+                    >
                       {e.title}
                     </div>
                   ))}
