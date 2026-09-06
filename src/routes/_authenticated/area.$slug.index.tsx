@@ -26,9 +26,10 @@ function AreaPage() {
   const { slug } = Route.useParams();
   const { activeOrgId } = useActiveOrg();
 
-  const { data: area, isLoading } = useQuery({
+  const { data: area, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ["area", activeOrgId, slug],
     enabled: !!activeOrgId,
+    retry: 2,
     queryFn: async () => {
       const { data, error } = await supabase.from("areas").select("*")
         .eq("organization_id", activeOrgId!).eq("slug", slug).maybeSingle();
@@ -38,7 +39,22 @@ function AreaPage() {
   });
 
   if (isLoading || !activeOrgId) return <div className="p-6 text-sm text-muted-foreground">Carregando área…</div>;
-  if (!area) return <div className="p-6 text-sm text-muted-foreground">Área não encontrada nesta equipe.</div>;
+  if (isError) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Não conseguimos abrir esta área agora.</p>
+        <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>Tentar de novo</Button>
+      </div>
+    );
+  }
+  if (!area) {
+    return (
+      <div className="p-8 text-center space-y-3">
+        <p className="text-sm text-muted-foreground">Área não encontrada nesta equipe.</p>
+        <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>Recarregar</Button>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full">

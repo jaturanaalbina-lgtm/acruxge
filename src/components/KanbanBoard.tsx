@@ -16,7 +16,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound } from "lucide-react";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound, RefreshCw } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 const COLUMNS: { key: TaskStatus; label: string }[] = [
@@ -40,6 +41,7 @@ interface Task {
   due_date: string | null;
   labels: string[] | null;
   progress: number | null;
+  position: number | null;
   area_id: string;
   project_id: string | null;
   assignee_id: string | null;
@@ -363,19 +365,22 @@ function TaskCard({
 
 
   return (
-    <Card className={`p-3 hover:border-primary/50 transition-all group ${dragging ? "opacity-40" : ""}`}>
+    <Card
+      data-task={task.id}
+      className={`p-3 hover:border-primary/50 transition-all group touch-none select-none cursor-grab active:cursor-grabbing ${dragging ? "opacity-40" : ""}`}
+      onPointerDown={onPointerDownHandle}
+      onPointerMove={onPointerMoveHandle}
+      onPointerUp={onPointerUpHandle}
+      onPointerCancel={onPointerUpHandle}
+    >
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          aria-label="Arrastar tarefa"
-          className="mt-0.5 -ml-1 p-1 rounded cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
-          onPointerDown={onPointerDownHandle}
-          onPointerMove={onPointerMoveHandle}
-          onPointerUp={onPointerUpHandle}
-          onPointerCancel={onPointerUpHandle}
+        <span
+          data-drag-handle
+          aria-hidden
+          className="mt-0.5 -ml-1 p-1 rounded text-muted-foreground"
         >
           <GripVertical className="size-3.5" />
-        </button>
+        </span>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="text-sm font-medium leading-snug">{task.title}</div>
           {task.description && <div className="text-xs text-muted-foreground line-clamp-2">{task.description}</div>}

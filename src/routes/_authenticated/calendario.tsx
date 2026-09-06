@@ -17,7 +17,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, Bell } from "lucide-react";
 import { toast } from "sonner";
-import { ensureNotificationPermission, showReminderNotification } from "@/lib/ponto-notification";
+import { ensureNotificationPermission } from "@/lib/ponto-notification";
+import { pushReminders, type ReminderItem } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/calendario")({
   ssr: false,
@@ -111,12 +112,12 @@ function CalendarPage() {
     enabled: !!activeOrgId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tasks").select("id,title,due_date,status")
+        .from("tasks").select("id,title,due_date,status,assignee_id")
         .eq("organization_id", activeOrgId!)
         .gte("due_date", rangeFrom).lte("due_date", rangeTo)
         .neq("status", "done");
       if (error) throw error;
-      return (data ?? []) as { id: string; title: string; due_date: string; status: string }[];
+      return (data ?? []) as { id: string; title: string; due_date: string; status: string; assignee_id: string | null }[];
     },
   });
 
@@ -131,35 +132,71 @@ function CalendarPage() {
     return () => { supabase.removeChannel(ch); };
   }, [activeOrgId, qc]);
 
-  // Lembretes: hoje e véspera
+  // Lembretes: véspera, dia e 1 hora antes do horário marcado
   useEffect(() => {
+    if (!activeOrgId) return;
     if (!events.length && !deadlines.length) return;
-    const now = new Date();
-    const today = iso(now);
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-    const tmr = iso(tomorrow);
 
-    const items = [
-      ...events.map((e) => ({ id: `ev-${e.id}`, date: e.start_date, title: "Evento da equipe", body: e.title })),
-      ...deadlines.map((t) => ({ id: `tk-${t.id}`, date: t.due_date, title: "Prazo de tarefa", body: t.title })),
-    ].filter((i) => i.date === today || i.date === tmr);
+    const run = () => {
+      const now = new Date();
+      const today = iso(now);
+      const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+      const tmr = iso(tomorrow);
+      const items: ReminderItem[] = [];
 
-    if (!items.length) return;
-    void (async () => {
-      const ok = await ensureNotificationPermission();
-      if (!ok) return;
-      for (const i of items) {
-        const key = `reminder:${i.id}:${today}:${i.date === today ? "d0" : "d1"}`;
-        if (localStorage.getItem(key)) continue;
-        localStorage.setItem(key, "1");
-        await showReminderNotification(
-          i.id,
-          i.date === today ? `${i.title} hoje` : `${i.title} amanhã`,
-          i.body,
-        );
+      for (const e of events) {
+        if (e.start_date === tmr) {
+          items.push({
+            key: `ev-${e.id}-d1`, type: "event_reminder", title: "Evento amanhã",
+            body: e.title, link: "/calendario", entity_id: e.id,
+          });
+        }
+        if (e.start_date === today) {
+          items.push({
+            key: `ev-${e.id}-d0`, type: "event_reminder", title: "Evento hoje",
+            body: e.title, link: "/calendario", entity_id: e.id,
+          });
+          if (e.start_time) {
+            const start = new Date(`${e.start_date}T${e.start_time}`);
+            const diffMin = (start.getTime() - now.getTime()) / 60000;
+            if (diffMin > 0 && diffMin <= 60) {
+              items.push({
+                key: `ev-${e.id}-h1`, type: "event_reminder", title: "Evento em menos de 1 hora",
+                body: `${e.title} · ${e.start_time.slice(0, 5)}`, link: "/calendario", entity_id: e.id,
+              });
+            }
+          }
+        }
       }
-    })();
-  }, [events, deadlines]);
+
+      for (const t of deadlines) {
+        if (t.assignee_id !== user.id) continue;
+        if (t.due_date === tmr) {
+          items.push({
+            key: `tk-${t.id}-d1`, type: "task_due", title: "Prazo de tarefa amanhã",
+            body: t.title, link: "/calendario", entity_id: t.id,
+          });
+        }
+        if (t.due_date === today) {
+          items.push({
+            key: `tk-${t.id}-d0`, type: "task_due", title: "Prazo de tarefa hoje",
+            body: t.title, link: "/calendario", entity_id: t.id,
+          });
+        }
+      }
+
+      if (!items.length) return;
+      void (async () => {
+        await ensureNotificationPermission();
+        await pushReminders(activeOrgId, user.id, items);
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+      })();
+    };
+
+    run();
+    const timer = window.setInterval(run, 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [events, deadlines, activeOrgId, user.id, qc]);
 
   const byDay = useMemo(() => {
     const map: Record<string, EventRow[]> = {};
@@ -233,6 +270,46 @@ function CalendarPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const moveEvent = useMutation({
+    mutationFn: async ({ ev, date }: { ev: EventRow; date: string }) => {
+      const delta = Math.round(
+        (new Date(date + "T00:00:00").getTime() - new Date(ev.start_date + "T00:00:00").getTime()) / 86400000,
+      );
+      let end: string | null = ev.end_date ?? null;
+      if (end) {
+        const d = new Date(end + "T00:00:00");
+        d.setDate(d.getDate() + delta);
+        end = iso(d);
+      }
+      const { error } = await supabase.from("calendar_events")
+        .update({ start_date: date, end_date: end }).eq("id", ev.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Evento movido"); qc.invalidateQueries({ queryKey: ["calendar-events"] }); },
+    onError: () => toast.error("Você não pode mover este evento."),
+  });
+
+  const duplicateEvent = useMutation({
+    mutationFn: async (ev: EventRow) => {
+      const { error } = await supabase.from("calendar_events").insert({
+        organization_id: activeOrgId!, title: `${ev.title} (cópia)`, description: ev.description,
+        start_date: ev.start_date, end_date: ev.end_date, start_time: ev.start_time,
+        color: ev.color, area_id: ev.area_id, created_by: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Evento duplicado"); qc.invalidateQueries({ queryKey: ["calendar-events"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [dragEvId, setDragEvId] = useState<string | null>(null);
+  const dropOnDay = (date: string) => {
+    const ev = events.find((x) => x.id === dragEvId);
+    setDragEvId(null);
+    if (!ev || !canEdit(ev) || ev.start_date === date) return;
+    moveEvent.mutate({ ev, date });
+  };
+
   const openNew = (date: string) => {
     setParticipants([]);
     setEditing({ start_date: date, color: COLORS[0], title: "" });
@@ -288,6 +365,8 @@ function CalendarPage() {
                 type="button"
                 onClick={() => setSelected(key)}
                 onDoubleClick={() => openNew(key)}
+                onDragOver={(e) => { if (dragEvId) e.preventDefault(); }}
+                onDrop={(e) => { e.preventDefault(); dropOnDay(key); }}
                 className={`min-h-20 rounded-md border p-1.5 text-left transition-colors hover:border-acrux/60 ${
                   selected === key ? "ring-2 ring-acrux/60" : ""
                 } ${inMonth ? "border-border" : "border-transparent opacity-40"}`}
@@ -298,7 +377,15 @@ function CalendarPage() {
                 </div>
                 <div className="mt-1 space-y-0.5">
                   {evs.slice(0, 2).map((e) => (
-                    <div key={e.id} className="truncate text-[10px] px-1 rounded" style={{ backgroundColor: `color-mix(in oklab, ${e.color} 35%, transparent)` }}>
+                    <div
+                      key={e.id}
+                      draggable={canEdit(e)}
+                      onDragStart={() => setDragEvId(e.id)}
+                      onDragEnd={() => setDragEvId(null)}
+                      title={canEdit(e) ? "Arraste para outro dia" : e.title}
+                      className={`truncate text-[10px] px-1 rounded ${canEdit(e) ? "cursor-grab active:cursor-grabbing" : ""}`}
+                      style={{ backgroundColor: `color-mix(in oklab, ${e.color} 35%, transparent)` }}
+                    >
                       {e.title}
                     </div>
                   ))}
@@ -335,7 +422,18 @@ function CalendarPage() {
               )}
             </div>
             {canEdit(e) && (
-              <Button size="sm" variant="ghost" onClick={() => openEdit(e)}>Editar</Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="sm" variant="ghost" onClick={() => openEdit(e)}>Editar</Button>
+                <Button size="sm" variant="ghost" onClick={() => duplicateEvent.mutate(e)}>Duplicar</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => { if (confirm(`Excluir "${e.title}"?`)) remove.mutate(e.id); }}
+                >
+                  Excluir
+                </Button>
+              </div>
             )}
           </div>
         ))}
