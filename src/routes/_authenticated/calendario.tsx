@@ -270,6 +270,46 @@ function CalendarPage() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const moveEvent = useMutation({
+    mutationFn: async ({ ev, date }: { ev: EventRow; date: string }) => {
+      const delta = Math.round(
+        (new Date(date + "T00:00:00").getTime() - new Date(ev.start_date + "T00:00:00").getTime()) / 86400000,
+      );
+      let end: string | null = ev.end_date ?? null;
+      if (end) {
+        const d = new Date(end + "T00:00:00");
+        d.setDate(d.getDate() + delta);
+        end = iso(d);
+      }
+      const { error } = await supabase.from("calendar_events")
+        .update({ start_date: date, end_date: end }).eq("id", ev.id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Evento movido"); qc.invalidateQueries({ queryKey: ["calendar-events"] }); },
+    onError: () => toast.error("Você não pode mover este evento."),
+  });
+
+  const duplicateEvent = useMutation({
+    mutationFn: async (ev: EventRow) => {
+      const { error } = await supabase.from("calendar_events").insert({
+        organization_id: activeOrgId!, title: `${ev.title} (cópia)`, description: ev.description,
+        start_date: ev.start_date, end_date: ev.end_date, start_time: ev.start_time,
+        color: ev.color, area_id: ev.area_id, created_by: user.id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Evento duplicado"); qc.invalidateQueries({ queryKey: ["calendar-events"] }); },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [dragEvId, setDragEvId] = useState<string | null>(null);
+  const dropOnDay = (date: string) => {
+    const ev = events.find((x) => x.id === dragEvId);
+    setDragEvId(null);
+    if (!ev || !canEdit(ev) || ev.start_date === date) return;
+    moveEvent.mutate({ ev, date });
+  };
+
   const openNew = (date: string) => {
     setParticipants([]);
     setEditing({ start_date: date, color: COLORS[0], title: "" });
