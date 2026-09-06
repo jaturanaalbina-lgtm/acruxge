@@ -41,6 +41,7 @@ interface Task {
   due_date: string | null;
   labels: string[] | null;
   progress: number | null;
+  position: number | null;
   area_id: string;
   project_id: string | null;
   assignee_id: string | null;
