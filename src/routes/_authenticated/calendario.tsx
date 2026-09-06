@@ -17,7 +17,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Plus, Trash2, CalendarDays, Bell } from "lucide-react";
 import { toast } from "sonner";
-import { ensureNotificationPermission, showReminderNotification } from "@/lib/ponto-notification";
+import { ensureNotificationPermission } from "@/lib/ponto-notification";
+import { pushReminders, type ReminderItem } from "@/lib/notifications";
 
 export const Route = createFileRoute("/_authenticated/calendario")({
   ssr: false,
@@ -131,35 +132,71 @@ function CalendarPage() {
     return () => { supabase.removeChannel(ch); };
   }, [activeOrgId, qc]);
 
-  // Lembretes: hoje e véspera
+  // Lembretes: véspera, dia e 1 hora antes do horário marcado
   useEffect(() => {
+    if (!activeOrgId) return;
     if (!events.length && !deadlines.length) return;
-    const now = new Date();
-    const today = iso(now);
-    const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
-    const tmr = iso(tomorrow);
 
-    const items = [
-      ...events.map((e) => ({ id: `ev-${e.id}`, date: e.start_date, title: "Evento da equipe", body: e.title })),
-      ...deadlines.map((t) => ({ id: `tk-${t.id}`, date: t.due_date, title: "Prazo de tarefa", body: t.title })),
-    ].filter((i) => i.date === today || i.date === tmr);
+    const run = () => {
+      const now = new Date();
+      const today = iso(now);
+      const tomorrow = new Date(now); tomorrow.setDate(now.getDate() + 1);
+      const tmr = iso(tomorrow);
+      const items: ReminderItem[] = [];
 
-    if (!items.length) return;
-    void (async () => {
-      const ok = await ensureNotificationPermission();
-      if (!ok) return;
-      for (const i of items) {
-        const key = `reminder:${i.id}:${today}:${i.date === today ? "d0" : "d1"}`;
-        if (localStorage.getItem(key)) continue;
-        localStorage.setItem(key, "1");
-        await showReminderNotification(
-          i.id,
-          i.date === today ? `${i.title} hoje` : `${i.title} amanhã`,
-          i.body,
-        );
+      for (const e of events) {
+        if (e.start_date === tmr) {
+          items.push({
+            key: `ev-${e.id}-d1`, type: "event_reminder", title: "Evento amanhã",
+            body: e.title, link: "/calendario", entity_id: e.id,
+          });
+        }
+        if (e.start_date === today) {
+          items.push({
+            key: `ev-${e.id}-d0`, type: "event_reminder", title: "Evento hoje",
+            body: e.title, link: "/calendario", entity_id: e.id,
+          });
+          if (e.start_time) {
+            const start = new Date(`${e.start_date}T${e.start_time}`);
+            const diffMin = (start.getTime() - now.getTime()) / 60000;
+            if (diffMin > 0 && diffMin <= 60) {
+              items.push({
+                key: `ev-${e.id}-h1`, type: "event_reminder", title: "Evento em menos de 1 hora",
+                body: `${e.title} · ${e.start_time.slice(0, 5)}`, link: "/calendario", entity_id: e.id,
+              });
+            }
+          }
+        }
       }
-    })();
-  }, [events, deadlines]);
+
+      for (const t of deadlines) {
+        if (t.assignee_id !== user.id) continue;
+        if (t.due_date === tmr) {
+          items.push({
+            key: `tk-${t.id}-d1`, type: "task_due", title: "Prazo de tarefa amanhã",
+            body: t.title, link: "/calendario", entity_id: t.id,
+          });
+        }
+        if (t.due_date === today) {
+          items.push({
+            key: `tk-${t.id}-d0`, type: "task_due", title: "Prazo de tarefa hoje",
+            body: t.title, link: "/calendario", entity_id: t.id,
+          });
+        }
+      }
+
+      if (!items.length) return;
+      void (async () => {
+        await ensureNotificationPermission();
+        await pushReminders(activeOrgId, user.id, items);
+        qc.invalidateQueries({ queryKey: ["notifications"] });
+      })();
+    };
+
+    run();
+    const timer = window.setInterval(run, 5 * 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [events, deadlines, activeOrgId, user.id, qc]);
 
   const byDay = useMemo(() => {
     const map: Record<string, EventRow[]> = {};
