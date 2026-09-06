@@ -365,19 +365,22 @@ function TaskCard({
 
 
   return (
-    <Card className={`p-3 hover:border-primary/50 transition-all group ${dragging ? "opacity-40" : ""}`}>
+    <Card
+      data-task={task.id}
+      className={`p-3 hover:border-primary/50 transition-all group touch-none select-none cursor-grab active:cursor-grabbing ${dragging ? "opacity-40" : ""}`}
+      onPointerDown={onPointerDownHandle}
+      onPointerMove={onPointerMoveHandle}
+      onPointerUp={onPointerUpHandle}
+      onPointerCancel={onPointerUpHandle}
+    >
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          aria-label="Arrastar tarefa"
-          className="mt-0.5 -ml-1 p-1 rounded cursor-grab active:cursor-grabbing touch-none text-muted-foreground hover:text-foreground"
-          onPointerDown={onPointerDownHandle}
-          onPointerMove={onPointerMoveHandle}
-          onPointerUp={onPointerUpHandle}
-          onPointerCancel={onPointerUpHandle}
+        <span
+          data-drag-handle
+          aria-hidden
+          className="mt-0.5 -ml-1 p-1 rounded text-muted-foreground"
         >
           <GripVertical className="size-3.5" />
-        </button>
+        </span>
         <div className="flex-1 min-w-0 space-y-2">
           <div className="text-sm font-medium leading-snug">{task.title}</div>
           {task.description && <div className="text-xs text-muted-foreground line-clamp-2">{task.description}</div>}
