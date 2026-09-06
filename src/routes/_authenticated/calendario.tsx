@@ -422,7 +422,18 @@ function CalendarPage() {
               )}
             </div>
             {canEdit(e) && (
-              <Button size="sm" variant="ghost" onClick={() => openEdit(e)}>Editar</Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="sm" variant="ghost" onClick={() => openEdit(e)}>Editar</Button>
+                <Button size="sm" variant="ghost" onClick={() => duplicateEvent.mutate(e)}>Duplicar</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive"
+                  onClick={() => { if (confirm(`Excluir "${e.title}"?`)) remove.mutate(e.id); }}
+                >
+                  Excluir
+                </Button>
+              </div>
             )}
           </div>
         ))}
