@@ -111,12 +111,12 @@ function CalendarPage() {
     enabled: !!activeOrgId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tasks").select("id,title,due_date,status")
+        .from("tasks").select("id,title,due_date,status,assignee_id")
         .eq("organization_id", activeOrgId!)
         .gte("due_date", rangeFrom).lte("due_date", rangeTo)
         .neq("status", "done");
       if (error) throw error;
-      return (data ?? []) as { id: string; title: string; due_date: string; status: string }[];
+      return (data ?? []) as { id: string; title: string; due_date: string; status: string; assignee_id: string | null }[];
     },
   });
 
