@@ -365,6 +365,8 @@ function CalendarPage() {
                 type="button"
                 onClick={() => setSelected(key)}
                 onDoubleClick={() => openNew(key)}
+                onDragOver={(e) => { if (dragEvId) e.preventDefault(); }}
+                onDrop={(e) => { e.preventDefault(); dropOnDay(key); }}
                 className={`min-h-20 rounded-md border p-1.5 text-left transition-colors hover:border-acrux/60 ${
                   selected === key ? "ring-2 ring-acrux/60" : ""
                 } ${inMonth ? "border-border" : "border-transparent opacity-40"}`}
