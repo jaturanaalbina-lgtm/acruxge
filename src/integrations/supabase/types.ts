@@ -873,6 +873,31 @@ export type Database = {
         Returns: undefined
       }
       seed_default_areas: { Args: { _org: string }; Returns: undefined }
+      superadmin_delete_organization: {
+        Args: { _org: string }
+        Returns: undefined
+      }
+      superadmin_list_organizations: {
+        Args: never
+        Returns: {
+          brand_name: string
+          created_at: string
+          event_count: number
+          id: string
+          logo_url: string
+          member_count: number
+          name: string
+          owner_name: string
+          pending_count: number
+          slug: string
+          task_count: number
+          time_entry_count: number
+        }[]
+      }
+      superadmin_rename_organization: {
+        Args: { _name: string; _org: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "leader" | "member"

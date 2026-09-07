@@ -24,6 +24,7 @@ import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authentic
 import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
 import { Route as AuthenticatedOrgSettingsRouteImport } from './routes/_authenticated/org.settings'
 import { Route as AuthenticatedOrgNewRouteImport } from './routes/_authenticated/org.new'
+import { Route as AuthenticatedOrgHubRouteImport } from './routes/_authenticated/org.hub'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
 import { Route as AuthenticatedAreaSlugProjectIdRouteImport } from './routes/_authenticated/area.$slug.project.$id'
 
@@ -104,6 +105,11 @@ const AuthenticatedOrgNewRoute = AuthenticatedOrgNewRouteImport.update({
   path: '/org/new',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedOrgHubRoute = AuthenticatedOrgHubRouteImport.update({
+  id: '/org/hub',
+  path: '/org/hub',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedAreaSlugIndexRoute =
   AuthenticatedAreaSlugIndexRouteImport.update({
     id: '/area/$slug/',
@@ -129,6 +135,7 @@ export interface FileRoutesByFullPath {
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/org/hub': typeof AuthenticatedOrgHubRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByTo {
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/org/hub': typeof AuthenticatedOrgHubRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/social/content': typeof AuthenticatedSocialContentRoute
@@ -167,6 +175,7 @@ export interface FileRoutesById {
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/pontos': typeof AuthenticatedPontosRoute
   '/_authenticated/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/_authenticated/org/hub': typeof AuthenticatedOrgHubRoute
   '/_authenticated/org/new': typeof AuthenticatedOrgNewRoute
   '/_authenticated/org/settings': typeof AuthenticatedOrgSettingsRoute
   '/_authenticated/social/content': typeof AuthenticatedSocialContentRoute
@@ -187,6 +196,7 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/pontos'
     | '/solicitacoes'
+    | '/org/hub'
     | '/org/new'
     | '/org/settings'
     | '/social/content'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/ponto'
     | '/pontos'
     | '/solicitacoes'
+    | '/org/hub'
     | '/org/new'
     | '/org/settings'
     | '/social/content'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/_authenticated/ponto'
     | '/_authenticated/pontos'
     | '/_authenticated/solicitacoes'
+    | '/_authenticated/org/hub'
     | '/_authenticated/org/new'
     | '/_authenticated/org/settings'
     | '/_authenticated/social/content'
@@ -344,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrgNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/org/hub': {
+      id: '/_authenticated/org/hub'
+      path: '/org/hub'
+      fullPath: '/org/hub'
+      preLoaderRoute: typeof AuthenticatedOrgHubRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/area/$slug/': {
       id: '/_authenticated/area/$slug/'
       path: '/area/$slug'
@@ -371,6 +390,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedPontosRoute: typeof AuthenticatedPontosRoute
   AuthenticatedSolicitacoesRoute: typeof AuthenticatedSolicitacoesRoute
+  AuthenticatedOrgHubRoute: typeof AuthenticatedOrgHubRoute
   AuthenticatedOrgNewRoute: typeof AuthenticatedOrgNewRoute
   AuthenticatedOrgSettingsRoute: typeof AuthenticatedOrgSettingsRoute
   AuthenticatedSocialContentRoute: typeof AuthenticatedSocialContentRoute
@@ -388,6 +408,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedPontosRoute: AuthenticatedPontosRoute,
   AuthenticatedSolicitacoesRoute: AuthenticatedSolicitacoesRoute,
+  AuthenticatedOrgHubRoute: AuthenticatedOrgHubRoute,
   AuthenticatedOrgNewRoute: AuthenticatedOrgNewRoute,
   AuthenticatedOrgSettingsRoute: AuthenticatedOrgSettingsRoute,
   AuthenticatedSocialContentRoute: AuthenticatedSocialContentRoute,
