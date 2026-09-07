@@ -49,8 +49,9 @@ Consideram as tarefas em que a pessoa é responsável principal ou co-responsáv
 
 ## Detalhes técnicos
 
-- Nova rota `src/routes/_authenticated/org.hub.tsx` + link no `OrgSwitcher`; contagens via uma função de banco `org_overview()` retornando métricas por organização do usuário.
-- Exclusão via função `delete_organization(_org uuid)` com `security definer`, restrita a `is_org_owner`, apagando em cascata dados dependentes; migração adiciona a função (sem remover tabelas).
+- Nova rota `src/routes/_authenticated/org.hub.tsx` + link condicional no `OrgSwitcher`; acesso restrito por `has_role(auth.uid(), 'admin')` (papel global — hoje só sua conta), com `beforeLoad` redirecionando quem não for.
+- Função `superadmin_list_organizations()` `security definer` retornando todas as organizações + métricas, com `RAISE EXCEPTION` se o chamador não for admin global.
+- Exclusão via `superadmin_delete_organization(_org uuid)` `security definer`, autorizada por admin global (ou dono da equipe), apagando em cascata dados dependentes; migração adiciona as funções e os `GRANT ... TO authenticated` (sem remover tabelas).
 - `area.$slug.index.tsx`: remove `Tabs`, renderiza `KanbanBoard` direto.
 - `KanbanBoard.tsx`: ação `resetProgress` (update `status='todo'`, `progress=0`, `position` recalculado) com `is_org_admin` checado na UI e RLS já existente.
 - `ponto.tsx` / `pontos.tsx`: consulta de `tasks` + `task_assignees` + `areas` no intervalo, renderizada com `autoTable` adicional antes do bloco de assinaturas.
