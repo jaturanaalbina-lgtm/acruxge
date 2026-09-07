@@ -13,17 +13,17 @@ Existem 4 equipes na sua conta:
 
 Duas se chamam "Acrux ROBOCEP". A confusão de "área não encontrada" aparece quando a equipe aberta na tela não é a que tem as tarefas: cada equipe tem as suas próprias áreas, então o mesmo endereço de área muda de conteúdo conforme a equipe ativa. O nome repetido é o que torna isso invisível para você.
 
-## 1. Painel de equipes (novo)
+## 1. Painel geral de equipes (só para você)
 
-Nova página "Minhas equipes", acessível pelo seletor de equipe:
+Nova página "Todas as equipes", visível apenas para você (dona do sistema), acessível pelo seletor de equipe:
 
-- Lista todas as equipes de que você participa, com nome, link, quantidade de membros, tarefas, eventos e pontos registrados, e a data de criação.
+- Lista **todas as equipes criadas na plataforma**, não só as suas: nome, link, dono, membros ativos, tarefas, eventos, pontos registrados e data de criação.
 - Marca visualmente equipes com nome repetido.
 - Botão "Renomear" para diferenciar equipes homônimas.
-- Botão "Excluir equipe" (só para quem é dono), com confirmação digitando o nome da equipe e aviso de quantos dados serão apagados junto.
+- Botão "Excluir equipe" em qualquer equipe da lista, com confirmação digitando o nome e aviso de quantos dados serão apagados junto.
 - Depois de excluir, a tela troca automaticamente para outra equipe.
 
-Nada é excluído sem essa confirmação.
+Nada é excluído sem essa confirmação. Ninguém além de você vê essa página.
 
 ## 2. Tirar a aba "Projetos" do Kanban
 
@@ -49,8 +49,9 @@ Consideram as tarefas em que a pessoa é responsável principal ou co-responsáv
 
 ## Detalhes técnicos
 
-- Nova rota `src/routes/_authenticated/org.hub.tsx` + link no `OrgSwitcher`; contagens via uma função de banco `org_overview()` retornando métricas por organização do usuário.
-- Exclusão via função `delete_organization(_org uuid)` com `security definer`, restrita a `is_org_owner`, apagando em cascata dados dependentes; migração adiciona a função (sem remover tabelas).
+- Nova rota `src/routes/_authenticated/org.hub.tsx` + link condicional no `OrgSwitcher`; acesso restrito por `has_role(auth.uid(), 'admin')` (papel global — hoje só sua conta), com `beforeLoad` redirecionando quem não for.
+- Função `superadmin_list_organizations()` `security definer` retornando todas as organizações + métricas, com `RAISE EXCEPTION` se o chamador não for admin global.
+- Exclusão via `superadmin_delete_organization(_org uuid)` `security definer`, autorizada por admin global (ou dono da equipe), apagando em cascata dados dependentes; migração adiciona as funções e os `GRANT ... TO authenticated` (sem remover tabelas).
 - `area.$slug.index.tsx`: remove `Tabs`, renderiza `KanbanBoard` direto.
 - `KanbanBoard.tsx`: ação `resetProgress` (update `status='todo'`, `progress=0`, `position` recalculado) com `is_org_admin` checado na UI e RLS já existente.
 - `ponto.tsx` / `pontos.tsx`: consulta de `tasks` + `task_assignees` + `areas` no intervalo, renderizada com `autoTable` adicional antes do bloco de assinaturas.
