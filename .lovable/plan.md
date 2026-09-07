@@ -13,17 +13,17 @@ Existem 4 equipes na sua conta:
 
 Duas se chamam "Acrux ROBOCEP". A confusão de "área não encontrada" aparece quando a equipe aberta na tela não é a que tem as tarefas: cada equipe tem as suas próprias áreas, então o mesmo endereço de área muda de conteúdo conforme a equipe ativa. O nome repetido é o que torna isso invisível para você.
 
-## 1. Painel de equipes (novo)
+## 1. Painel geral de equipes (só para você)
 
-Nova página "Minhas equipes", acessível pelo seletor de equipe:
+Nova página "Todas as equipes", visível apenas para você (dona do sistema), acessível pelo seletor de equipe:
 
-- Lista todas as equipes de que você participa, com nome, link, quantidade de membros, tarefas, eventos e pontos registrados, e a data de criação.
+- Lista **todas as equipes criadas na plataforma**, não só as suas: nome, link, dono, membros ativos, tarefas, eventos, pontos registrados e data de criação.
 - Marca visualmente equipes com nome repetido.
 - Botão "Renomear" para diferenciar equipes homônimas.
-- Botão "Excluir equipe" (só para quem é dono), com confirmação digitando o nome da equipe e aviso de quantos dados serão apagados junto.
+- Botão "Excluir equipe" em qualquer equipe da lista, com confirmação digitando o nome e aviso de quantos dados serão apagados junto.
 - Depois de excluir, a tela troca automaticamente para outra equipe.
 
-Nada é excluído sem essa confirmação.
+Nada é excluído sem essa confirmação. Ninguém além de você vê essa página.
 
 ## 2. Tirar a aba "Projetos" do Kanban
 
