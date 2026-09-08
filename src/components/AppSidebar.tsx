@@ -6,7 +6,7 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, FolderKanban, Clock, Mail, ClipboardList, UserCheck, UserCog } from "lucide-react";
+import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, KanbanSquare, Clock, Mail, ClipboardList, UserCheck, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActiveOrg } from "@/contexts/active-org";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
@@ -129,7 +129,7 @@ export function AppSidebar() {
                 </div>
               )}
               {parents.map((area) => {
-                const Icon = ICONS[area.slug] ?? FolderKanban;
+                const Icon = ICONS[area.slug] ?? KanbanSquare;
                 const children = areas.filter((a) => a.parent_id === area.id);
                 const isActive = pathname.includes(`/area/${area.slug}`);
                 return (
