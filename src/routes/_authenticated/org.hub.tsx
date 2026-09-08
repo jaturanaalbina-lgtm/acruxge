@@ -98,7 +98,7 @@ function OrgHubPage() {
       setDeleting(null);
       setConfirmText("");
       qc.invalidateQueries({ queryKey: ["all-organizations"] });
-      refetchOrgs().then?.(() => {});
+      refetchOrgs();
       if (wasActive) {
         const next = orgs.find((o) => o.id !== deleting?.id);
         if (next) setActiveOrgId(next.id);
