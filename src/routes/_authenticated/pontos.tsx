@@ -279,6 +279,9 @@ function PontosAdminPage() {
             <Button onClick={exportPDF} disabled={filtered.length === 0}>
               <FileDown /> PDF (papel timbrado)
             </Button>
+            <Button variant="outline" onClick={() => exportIndividual(member === "all" ? allMemberIds : [member])} disabled={allMemberIds.length === 0}>
+              <FileDown /> {member === "all" ? "PDF individual de todos" : "PDF individual"}
+            </Button>
           </div>
         </div>
       </Card>
@@ -290,7 +293,12 @@ function PontosAdminPage() {
           {totals.map(([uid, mins]) => (
             <div key={uid} className="flex items-center justify-between rounded-md border border-border p-3">
               <span className="text-sm truncate">{names[uid] ?? "Membro"}</span>
-              <Badge variant="outline" className="font-mono">{fmtDuration(mins)}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="font-mono">{fmtDuration(mins)}</Badge>
+                <Button size="sm" variant="ghost" title="PDF individual" onClick={() => exportIndividual([uid])}>
+                  <FileDown className="size-3" />
+                </Button>
+              </div>
             </div>
           ))}
         </div>
