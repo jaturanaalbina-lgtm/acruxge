@@ -9,73 +9,44 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedSolicitacoesRouteImport } from './routes/_authenticated/solicitacoes'
-import { Route as AuthenticatedPontosRouteImport } from './routes/_authenticated/pontos'
-import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
-import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
-import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
-import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedCalendarioRouteImport } from './routes/_authenticated/calendario'
-import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
-import { Route as AuthenticatedOrgSettingsRouteImport } from './routes/_authenticated/org.settings'
-import { Route as AuthenticatedOrgNewRouteImport } from './routes/_authenticated/org.new'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedInvitesRouteImport } from './routes/_authenticated/invites'
+import { Route as AuthenticatedMembersRouteImport } from './routes/_authenticated/members'
+import { Route as AuthenticatedMinhasTarefasRouteImport } from './routes/_authenticated/minhas-tarefas'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedPerfilRouteImport } from './routes/_authenticated/perfil'
+import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
+import { Route as AuthenticatedPontosRouteImport } from './routes/_authenticated/pontos'
+import { Route as AuthenticatedSolicitacoesRouteImport } from './routes/_authenticated/solicitacoes'
+import { Route as AuthenticatedTarefasEquipeRouteImport } from './routes/_authenticated/tarefas-equipe'
 import { Route as AuthenticatedOrgHubRouteImport } from './routes/_authenticated/org.hub'
+import { Route as AuthenticatedOrgNewRouteImport } from './routes/_authenticated/org.new'
+import { Route as AuthenticatedOrgSettingsRouteImport } from './routes/_authenticated/org.settings'
+import { Route as AuthenticatedSocialContentRouteImport } from './routes/_authenticated/social.content'
 import { Route as AuthenticatedAreaSlugIndexRouteImport } from './routes/_authenticated/area.$slug.index'
 import { Route as AuthenticatedAreaSlugProjectIdRouteImport } from './routes/_authenticated/area.$slug.project.$id'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedSolicitacoesRoute =
-  AuthenticatedSolicitacoesRouteImport.update({
-    id: '/solicitacoes',
-    path: '/solicitacoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPontosRoute = AuthenticatedPontosRouteImport.update({
-  id: '/pontos',
-  path: '/pontos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
-  id: '/ponto',
-  path: '/ponto',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
-  id: '/members',
-  path: '/members',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
-  id: '/invites',
-  path: '/invites',
+const AuthenticatedCalendarioRoute = AuthenticatedCalendarioRouteImport.update({
+  id: '/calendario',
+  path: '/calendario',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
@@ -83,33 +54,76 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedCalendarioRoute = AuthenticatedCalendarioRouteImport.update({
-  id: '/calendario',
-  path: '/calendario',
+const AuthenticatedInvitesRoute = AuthenticatedInvitesRouteImport.update({
+  id: '/invites',
+  path: '/invites',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedSocialContentRoute =
-  AuthenticatedSocialContentRouteImport.update({
-    id: '/social/content',
-    path: '/social/content',
+const AuthenticatedMembersRoute = AuthenticatedMembersRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedMinhasTarefasRoute =
+  AuthenticatedMinhasTarefasRouteImport.update({
+    id: '/minhas-tarefas',
+    path: '/minhas-tarefas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPerfilRoute = AuthenticatedPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
+  id: '/ponto',
+  path: '/ponto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPontosRoute = AuthenticatedPontosRouteImport.update({
+  id: '/pontos',
+  path: '/pontos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSolicitacoesRoute =
+  AuthenticatedSolicitacoesRouteImport.update({
+    id: '/solicitacoes',
+    path: '/solicitacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedTarefasEquipeRoute =
+  AuthenticatedTarefasEquipeRouteImport.update({
+    id: '/tarefas-equipe',
+    path: '/tarefas-equipe',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOrgHubRoute = AuthenticatedOrgHubRouteImport.update({
+  id: '/org/hub',
+  path: '/org/hub',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedOrgNewRoute = AuthenticatedOrgNewRouteImport.update({
+  id: '/org/new',
+  path: '/org/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOrgSettingsRoute =
   AuthenticatedOrgSettingsRouteImport.update({
     id: '/org/settings',
     path: '/org/settings',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedOrgNewRoute = AuthenticatedOrgNewRouteImport.update({
-  id: '/org/new',
-  path: '/org/new',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedOrgHubRoute = AuthenticatedOrgHubRouteImport.update({
-  id: '/org/hub',
-  path: '/org/hub',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedSocialContentRoute =
+  AuthenticatedSocialContentRouteImport.update({
+    id: '/social/content',
+    path: '/social/content',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAreaSlugIndexRoute =
   AuthenticatedAreaSlugIndexRouteImport.update({
     id: '/area/$slug/',
@@ -130,11 +144,13 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/minhas-tarefas': typeof AuthenticatedMinhasTarefasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/tarefas-equipe': typeof AuthenticatedTarefasEquipeRoute
   '/org/hub': typeof AuthenticatedOrgHubRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
@@ -149,11 +165,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/invites': typeof AuthenticatedInvitesRoute
   '/members': typeof AuthenticatedMembersRoute
+  '/minhas-tarefas': typeof AuthenticatedMinhasTarefasRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/perfil': typeof AuthenticatedPerfilRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/pontos': typeof AuthenticatedPontosRoute
   '/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/tarefas-equipe': typeof AuthenticatedTarefasEquipeRoute
   '/org/hub': typeof AuthenticatedOrgHubRoute
   '/org/new': typeof AuthenticatedOrgNewRoute
   '/org/settings': typeof AuthenticatedOrgSettingsRoute
@@ -170,11 +188,13 @@ export interface FileRoutesById {
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/invites': typeof AuthenticatedInvitesRoute
   '/_authenticated/members': typeof AuthenticatedMembersRoute
+  '/_authenticated/minhas-tarefas': typeof AuthenticatedMinhasTarefasRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/perfil': typeof AuthenticatedPerfilRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/pontos': typeof AuthenticatedPontosRoute
   '/_authenticated/solicitacoes': typeof AuthenticatedSolicitacoesRoute
+  '/_authenticated/tarefas-equipe': typeof AuthenticatedTarefasEquipeRoute
   '/_authenticated/org/hub': typeof AuthenticatedOrgHubRoute
   '/_authenticated/org/new': typeof AuthenticatedOrgNewRoute
   '/_authenticated/org/settings': typeof AuthenticatedOrgSettingsRoute
@@ -191,11 +211,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invites'
     | '/members'
+    | '/minhas-tarefas'
     | '/onboarding'
     | '/perfil'
     | '/ponto'
     | '/pontos'
     | '/solicitacoes'
+    | '/tarefas-equipe'
     | '/org/hub'
     | '/org/new'
     | '/org/settings'
@@ -210,11 +232,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/invites'
     | '/members'
+    | '/minhas-tarefas'
     | '/onboarding'
     | '/perfil'
     | '/ponto'
     | '/pontos'
     | '/solicitacoes'
+    | '/tarefas-equipe'
     | '/org/hub'
     | '/org/new'
     | '/org/settings'
@@ -230,11 +254,13 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard'
     | '/_authenticated/invites'
     | '/_authenticated/members'
+    | '/_authenticated/minhas-tarefas'
     | '/_authenticated/onboarding'
     | '/_authenticated/perfil'
     | '/_authenticated/ponto'
     | '/_authenticated/pontos'
     | '/_authenticated/solicitacoes'
+    | '/_authenticated/tarefas-equipe'
     | '/_authenticated/org/hub'
     | '/_authenticated/org/new'
     | '/_authenticated/org/settings'
@@ -251,11 +277,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -265,60 +291,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/solicitacoes': {
-      id: '/_authenticated/solicitacoes'
-      path: '/solicitacoes'
-      fullPath: '/solicitacoes'
-      preLoaderRoute: typeof AuthenticatedSolicitacoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/pontos': {
-      id: '/_authenticated/pontos'
-      path: '/pontos'
-      fullPath: '/pontos'
-      preLoaderRoute: typeof AuthenticatedPontosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/ponto': {
-      id: '/_authenticated/ponto'
-      path: '/ponto'
-      fullPath: '/ponto'
-      preLoaderRoute: typeof AuthenticatedPontoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/perfil': {
-      id: '/_authenticated/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/onboarding': {
-      id: '/_authenticated/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/members': {
-      id: '/_authenticated/members'
-      path: '/members'
-      fullPath: '/members'
-      preLoaderRoute: typeof AuthenticatedMembersRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/invites': {
-      id: '/_authenticated/invites'
-      path: '/invites'
-      fullPath: '/invites'
-      preLoaderRoute: typeof AuthenticatedInvitesRouteImport
+    '/_authenticated/calendario': {
+      id: '/_authenticated/calendario'
+      path: '/calendario'
+      fullPath: '/calendario'
+      preLoaderRoute: typeof AuthenticatedCalendarioRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/dashboard': {
@@ -328,25 +312,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/calendario': {
-      id: '/_authenticated/calendario'
-      path: '/calendario'
-      fullPath: '/calendario'
-      preLoaderRoute: typeof AuthenticatedCalendarioRouteImport
+    '/_authenticated/invites': {
+      id: '/_authenticated/invites'
+      path: '/invites'
+      fullPath: '/invites'
+      preLoaderRoute: typeof AuthenticatedInvitesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/social/content': {
-      id: '/_authenticated/social/content'
-      path: '/social/content'
-      fullPath: '/social/content'
-      preLoaderRoute: typeof AuthenticatedSocialContentRouteImport
+    '/_authenticated/members': {
+      id: '/_authenticated/members'
+      path: '/members'
+      fullPath: '/members'
+      preLoaderRoute: typeof AuthenticatedMembersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/org/settings': {
-      id: '/_authenticated/org/settings'
-      path: '/org/settings'
-      fullPath: '/org/settings'
-      preLoaderRoute: typeof AuthenticatedOrgSettingsRouteImport
+    '/_authenticated/minhas-tarefas': {
+      id: '/_authenticated/minhas-tarefas'
+      path: '/minhas-tarefas'
+      fullPath: '/minhas-tarefas'
+      preLoaderRoute: typeof AuthenticatedMinhasTarefasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/perfil': {
+      id: '/_authenticated/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AuthenticatedPerfilRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/ponto': {
+      id: '/_authenticated/ponto'
+      path: '/ponto'
+      fullPath: '/ponto'
+      preLoaderRoute: typeof AuthenticatedPontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pontos': {
+      id: '/_authenticated/pontos'
+      path: '/pontos'
+      fullPath: '/pontos'
+      preLoaderRoute: typeof AuthenticatedPontosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/solicitacoes': {
+      id: '/_authenticated/solicitacoes'
+      path: '/solicitacoes'
+      fullPath: '/solicitacoes'
+      preLoaderRoute: typeof AuthenticatedSolicitacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tarefas-equipe': {
+      id: '/_authenticated/tarefas-equipe'
+      path: '/tarefas-equipe'
+      fullPath: '/tarefas-equipe'
+      preLoaderRoute: typeof AuthenticatedTarefasEquipeRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/org/hub': {
+      id: '/_authenticated/org/hub'
+      path: '/org/hub'
+      fullPath: '/org/hub'
+      preLoaderRoute: typeof AuthenticatedOrgHubRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/org/new': {
@@ -356,11 +389,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOrgNewRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/org/hub': {
-      id: '/_authenticated/org/hub'
-      path: '/org/hub'
-      fullPath: '/org/hub'
-      preLoaderRoute: typeof AuthenticatedOrgHubRouteImport
+    '/_authenticated/org/settings': {
+      id: '/_authenticated/org/settings'
+      path: '/org/settings'
+      fullPath: '/org/settings'
+      preLoaderRoute: typeof AuthenticatedOrgSettingsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/social/content': {
+      id: '/_authenticated/social/content'
+      path: '/social/content'
+      fullPath: '/social/content'
+      preLoaderRoute: typeof AuthenticatedSocialContentRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/area/$slug/': {
@@ -385,11 +425,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedInvitesRoute: typeof AuthenticatedInvitesRoute
   AuthenticatedMembersRoute: typeof AuthenticatedMembersRoute
+  AuthenticatedMinhasTarefasRoute: typeof AuthenticatedMinhasTarefasRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedPerfilRoute: typeof AuthenticatedPerfilRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedPontosRoute: typeof AuthenticatedPontosRoute
   AuthenticatedSolicitacoesRoute: typeof AuthenticatedSolicitacoesRoute
+  AuthenticatedTarefasEquipeRoute: typeof AuthenticatedTarefasEquipeRoute
   AuthenticatedOrgHubRoute: typeof AuthenticatedOrgHubRoute
   AuthenticatedOrgNewRoute: typeof AuthenticatedOrgNewRoute
   AuthenticatedOrgSettingsRoute: typeof AuthenticatedOrgSettingsRoute
@@ -403,11 +445,13 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedInvitesRoute: AuthenticatedInvitesRoute,
   AuthenticatedMembersRoute: AuthenticatedMembersRoute,
+  AuthenticatedMinhasTarefasRoute: AuthenticatedMinhasTarefasRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedPerfilRoute: AuthenticatedPerfilRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedPontosRoute: AuthenticatedPontosRoute,
   AuthenticatedSolicitacoesRoute: AuthenticatedSolicitacoesRoute,
+  AuthenticatedTarefasEquipeRoute: AuthenticatedTarefasEquipeRoute,
   AuthenticatedOrgHubRoute: AuthenticatedOrgHubRoute,
   AuthenticatedOrgNewRoute: AuthenticatedOrgNewRoute,
   AuthenticatedOrgSettingsRoute: AuthenticatedOrgSettingsRoute,

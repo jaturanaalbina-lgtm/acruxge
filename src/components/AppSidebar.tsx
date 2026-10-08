@@ -6,7 +6,7 @@ import {
   SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, KanbanSquare, Clock, Mail, ClipboardList, UserCheck, UserCog } from "lucide-react";
+import { LayoutDashboard, Users, Wrench, Code, Megaphone, LogOut, CalendarDays, KanbanSquare, Clock, Mail, ClipboardList, UserCheck, UserCog, ListChecks, ListTodo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useActiveOrg } from "@/contexts/active-org";
 import { OrgSwitcher } from "@/components/OrgSwitcher";
@@ -83,8 +83,19 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
 
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === "/minhas-tarefas"}>
+                  <Link to="/minhas-tarefas"><ListChecks /> <span>Minhas tarefas</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
               {isAdmin && (
                 <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={pathname === "/tarefas-equipe"}>
+                      <Link to="/tarefas-equipe"><ListTodo /> <span>Tarefas da equipe</span></Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === "/pontos"}>
                       <Link to="/pontos"><ClipboardList /> <span>Pontos da equipe</span></Link>
