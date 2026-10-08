@@ -12,6 +12,7 @@ import { Clock, Download, FileDown, Users, Pencil } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { TimeEntryEditDialog, type EditableEntry } from "@/components/TimeEntryEditDialog";
+import { fetchAssignedTasks, splitTasks, drawTaskSections } from "@/lib/report-tasks";
 
 export const Route = createFileRoute("/_authenticated/pontos")({
   ssr: false,
@@ -182,6 +183,54 @@ function PontosAdminPage() {
 
     doc.save(`relatorio-pontos-equipe-${from}-a-${to}.pdf`);
   };
+
+  const exportIndividual = async (uids: string[]) => {
+    if (!activeOrgId || uids.length === 0) return;
+    const allTasks = await fetchAssignedTasks(activeOrgId, uids);
+    const doc = new jsPDF({ unit: "mm", format: "a4" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const topMargin = 40;
+    const leftMargin = 20;
+    uids.forEach((uid, i) => {
+      if (i > 0) doc.addPage();
+      const mine = entries.filter((e) => e.user_id === uid);
+      const mins = mine.reduce((s, e) => s + (e.duration_minutes ?? 0), 0);
+      doc.setFont("times", "bold");
+      doc.setFontSize(14);
+      doc.text("Relatório Individual de Ponto", pageWidth / 2, topMargin, { align: "center" });
+      doc.setFont("times", "normal");
+      doc.setFontSize(11);
+      doc.text(`Equipe: ${activeOrg?.brand_name || activeOrg?.name || "—"}`, leftMargin, topMargin + 8);
+      doc.text(`Integrante: ${names[uid] ?? "—"}`, leftMargin, topMargin + 14);
+      doc.text(`Período: ${fmtDateLong(from)} a ${fmtDateLong(to)}`, leftMargin, topMargin + 20);
+      doc.text(`Total de horas: ${fmtDuration(mins)}`, leftMargin, topMargin + 26);
+      autoTable(doc, {
+        startY: topMargin + 32,
+        margin: { left: leftMargin, right: 20, top: topMargin, bottom: 30 },
+        head: [["Data", "Entrada", "Saída", "Duração", "Atividades realizadas"]],
+        body: mine.length
+          ? mine.map((e) => [
+              fmtDateLong(e.work_date),
+              fmtTime(e.clock_in),
+              e.clock_out ? fmtTime(e.clock_out) : "—",
+              e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
+              ((e.notes ?? "").trim() || "—") + (e.edited_at ? " (ajustado manualmente)" : ""),
+            ])
+          : [["—", "—", "—", "—", "Nenhum registro no período."]],
+        styles: { font: "times", fontSize: 9, cellPadding: 2, valign: "top", textColor: 20 },
+        headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
+      });
+      const { done, openTasks } = splitTasks(allTasks.filter((t) => t.user_id === uid), from, to);
+      drawTaskSections(doc, {
+        startY: ((doc as any).lastAutoTable?.finalY ?? topMargin + 40) + 10,
+        leftMargin, rightMargin: 20, done, openTasks,
+      });
+    });
+    const label = uids.length === 1 ? (names[uids[0]] ?? "membro").replace(/\s+/g, "-").toLowerCase() : "individuais";
+    doc.save(`ponto-${label}-${from}-a-${to}.pdf`);
+  };
+
+  const allMemberIds = (directory as any[]).map((p) => p.id as string);
 
   if (!isAdmin) {
     return <div className="p-6 text-sm text-muted-foreground">Apenas admins da equipe podem ver esta página.</div>;
