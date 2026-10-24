@@ -127,7 +127,7 @@ function PontosAdminPage() {
       fmtTime(e.clock_in),
       e.clock_out ? fmtTime(e.clock_out) : "",
       e.duration_minutes ?? "",
-      ((e.notes ?? "") + (e.edited_at ? " [ajustado manualmente]" : "")).replace(/\n/g, " "),
+      ((e.notes ?? "")).replace(/\n/g, " "),
     ]);
     const csv = [header, ...rows]
       .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(","))
@@ -167,7 +167,7 @@ function PontosAdminPage() {
         fmtTime(e.clock_in),
         e.clock_out ? fmtTime(e.clock_out) : "—",
         e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
-        ((e.notes ?? "").trim() || "—") + (e.edited_at ? " (ajustado manualmente)" : ""),
+        ((e.notes ?? "").trim() || "—"),
       ]),
       styles: { font: "times", fontSize: 9, cellPadding: 2, valign: "top", textColor: 20 },
       headStyles: { fillColor: [30, 30, 30], textColor: 255, fontStyle: "bold" },
@@ -214,7 +214,7 @@ function PontosAdminPage() {
               fmtTime(e.clock_in),
               e.clock_out ? fmtTime(e.clock_out) : "—",
               e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
-              ((e.notes ?? "").trim() || "—") + (e.edited_at ? " (ajustado manualmente)" : ""),
+              ((e.notes ?? "").trim() || "—"),
             ])
           : [["—", "—", "—", "—", "Nenhum registro no período."]],
         styles: { font: "times", fontSize: 9, cellPadding: 2, valign: "top", textColor: 20 },
