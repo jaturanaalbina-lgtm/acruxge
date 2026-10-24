@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound, RefreshCw, Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -110,7 +111,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   }, [areaId, projectId]);
 
   const patchTask = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Task> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Omit<Task, "task_assignees">> }) => {
       const { error } = await supabase.from("tasks").update(patch).eq("id", id);
       if (error) throw error;
     },
