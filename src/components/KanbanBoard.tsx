@@ -15,7 +15,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound, RefreshCw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Plus, Calendar as CalIcon, GripVertical, Trash2, UserRound, RefreshCw, Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -29,7 +30,6 @@ const COLUMNS: { key: TaskStatus; label: string }[] = [
   { key: "done", label: "Feito" },
 ];
 
-const UNASSIGNED = "__none__";
 
 /** Nenhuma tarefa pode sumir: situações antigas caem nas 3 colunas atuais. */
 const COLUMN_OF: Record<TaskStatus, TaskStatus> = {
@@ -54,6 +54,7 @@ interface Task {
   area_id: string;
   project_id: string | null;
   assignee_id: string | null;
+  task_assignees?: { user_id: string }[] | null;
 }
 
 export type Member = { id: string; full_name: string | null; avatar_url: string | null };
@@ -84,7 +85,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   const { data: tasks = [], isLoading, isError, refetch } = useQuery({
     queryKey: key,
     queryFn: async () => {
-      let q = supabase.from("tasks").select("*").eq("area_id", areaId);
+      let q = supabase.from("tasks").select("*, task_assignees(user_id)").eq("area_id", areaId);
       q = projectId ? q.eq("project_id", projectId) : q.is("project_id", null);
       const { data, error } = await q
         .order("position", { ascending: true, nullsFirst: false })
@@ -98,6 +99,9 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     const channel = supabase
       .channel(`tasks-board:${areaId}:${projectId ?? "area"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks" }, () =>
+        qc.invalidateQueries({ queryKey: ["tasks"] }),
+      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "task_assignees" }, () =>
         qc.invalidateQueries({ queryKey: ["tasks"] }),
       )
       .subscribe();
@@ -117,7 +121,36 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
       return { prev };
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error("Não foi possível atualizar a tarefa."); },
-    onSuccess: (_d, v) => { if ("assignee_id" in v.patch) toast.success("Responsável atualizado"); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
+  });
+
+  const setAssignees = useMutation({
+    mutationFn: async ({ id, userIds }: { id: string; userIds: string[] }) => {
+      const { error: delErr } = await supabase.from("task_assignees").delete().eq("task_id", id);
+      if (delErr) throw delErr;
+      if (userIds.length > 0) {
+        const { error } = await supabase
+          .from("task_assignees")
+          .insert(userIds.map((user_id) => ({ task_id: id, user_id })));
+        if (error) throw error;
+      }
+      // Mantém o responsável principal em tasks.assignee_id (relatórios e lembretes).
+      const { error: upErr } = await supabase
+        .from("tasks").update({ assignee_id: userIds[0] ?? null }).eq("id", id);
+      if (upErr) throw upErr;
+    },
+    onMutate: async ({ id, userIds }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<Task[]>(key);
+      qc.setQueryData<Task[]>(key, (old = []) =>
+        old.map((t) => (t.id === id
+          ? { ...t, assignee_id: userIds[0] ?? null, task_assignees: userIds.map((user_id) => ({ user_id })) }
+          : t)),
+      );
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error("Não foi possível atualizar os responsáveis."); },
+    onSuccess: () => toast.success("Responsáveis atualizados"),
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
@@ -293,7 +326,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
                   onPointerDownHandle={(e) => startDrag(e, task)}
                   onPointerMoveHandle={moveDrag}
                   onPointerUpHandle={endDrag}
-                  onAssign={(assignee_id) => patchTask.mutate({ id: task.id, patch: { assignee_id } })}
+                  onAssignees={(ids) => setAssignees.mutate({ id: task.id, userIds: ids })}
                   onDelete={() => deleteTask.mutate(task.id)}
                 />
               ))}
@@ -317,7 +350,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
 
 function TaskCard({
   task, members, dragging,
-  onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssign, onDelete,
+  onPointerDownHandle, onPointerMoveHandle, onPointerUpHandle, onAssignees, onDelete,
 }: {
   task: Task;
   members: Member[];
@@ -325,7 +358,7 @@ function TaskCard({
   onPointerDownHandle: (e: RPointerEvent) => void;
   onPointerMoveHandle: (e: RPointerEvent) => void;
   onPointerUpHandle: (e: RPointerEvent) => void;
-  onAssign: (id: string | null) => void;
+  onAssignees: (ids: string[]) => void;
   onDelete: () => void;
 }) {
   const priorityClr: Record<Priority, string> = {
@@ -334,7 +367,6 @@ function TaskCard({
     medium: "bg-blue-500/15 text-blue-300 border-blue-500/30",
     low: "bg-zinc-500/15 text-zinc-300 border-zinc-500/30",
   };
-  const assignee = members.find((m) => m.id === task.assignee_id) ?? null;
 
   return (
     <Card
@@ -364,28 +396,7 @@ function TaskCard({
             {task.labels?.map((l) => <Badge key={l} variant="secondary">{l}</Badge>)}
           </div>
 
-          <div className="flex items-center gap-2">
-            <Avatar className="size-6">
-              {assignee?.avatar_url && <AvatarImage src={assignee.avatar_url} alt={assignee.full_name ?? "Responsável"} />}
-              <AvatarFallback className="text-[10px]">
-                {assignee ? initials(assignee.full_name) : <UserRound className="size-3" />}
-              </AvatarFallback>
-            </Avatar>
-            <Select
-              value={task.assignee_id ?? UNASSIGNED}
-              onValueChange={(v) => onAssign(v === UNASSIGNED ? null : v)}
-            >
-              <SelectTrigger className="h-7 text-xs flex-1" aria-label="Responsável">
-                <SelectValue placeholder="Sem responsável" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
-                {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <AssigneesPicker task={task} members={members} onChange={(ids) => onAssignees(ids)} />
         </div>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -417,6 +428,75 @@ function TaskCard({
   );
 }
 
+function AssigneesPicker({ task, members, onChange }: { task: Task; members: Member[]; onChange: (ids: string[]) => void }) {
+  const ids = new Set<string>();
+  if (task.assignee_id) ids.add(task.assignee_id);
+  for (const a of task.task_assignees ?? []) ids.add(a.user_id);
+  const chosen = members.filter((m) => ids.has(m.id));
+  const [open, setOpen] = useState(false);
+
+  const toggle = (id: string) => {
+    const next = ids.has(id) ? Array.from(ids).filter((x) => x !== id) : [...Array.from(ids), id];
+    // Mantém a ordem da lista de membros para o avatar e para o responsável principal.
+    onChange(members.filter((m) => next.includes(m.id)).map((m) => m.id));
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 px-2 text-xs flex-1 justify-start gap-1.5"
+          aria-label="Responsáveis"
+        >
+          {chosen.length === 0 ? (
+            <>
+              <UserRound className="size-3.5 text-muted-foreground" />
+              <span className="text-muted-foreground font-normal">Sem responsável</span>
+            </>
+          ) : (
+            <>
+              <span className="flex -space-x-1.5">
+                {chosen.slice(0, 3).map((m) => (
+                  <Avatar key={m.id} className="size-5 ring-1 ring-background">
+                    {m.avatar_url && <AvatarImage src={m.avatar_url} alt={m.full_name ?? "Responsável"} />}
+                    <AvatarFallback className="text-[9px]">{initials(m.full_name)}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </span>
+              {chosen.length > 3 && <span className="text-muted-foreground">+{chosen.length - 3}</span>}
+            </>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-1.5">
+        {members.length === 0 && (
+          <p className="text-xs text-muted-foreground px-2 py-1.5">Nenhum membro na equipe ainda.</p>
+        )}
+        {members.map((m) => {
+          const on = ids.has(m.id);
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => toggle(m.id)}
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-xs text-left hover:bg-accent transition-colors"
+            >
+              <Avatar className="size-5">
+                {m.avatar_url && <AvatarImage src={m.avatar_url} alt={m.full_name ?? ""} />}
+                <AvatarFallback className="text-[9px]">{initials(m.full_name)}</AvatarFallback>
+              </Avatar>
+              <span className="flex-1 truncate">{m.full_name ?? "Membro"}</span>
+              {on && <Check className="size-3.5 text-primary" />}
+            </button>
+          );
+        })}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export function NewTaskButton({ areaId, projectId, status = "todo", compact = false }: { areaId: string; projectId?: string | null; status?: TaskStatus; compact?: boolean }) {
   const qc = useQueryClient();
   const { data: members = [] } = useOrgMembers();
@@ -426,11 +506,11 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
   const [priority, setPriority] = useState<Priority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [labels, setLabels] = useState("");
-  const [assignee, setAssignee] = useState<string>(UNASSIGNED);
+  const [assignees, setAssignees] = useState<string[]>([]);
 
   const reset = () => {
     setOpen(false); setTitle(""); setDescription(""); setDueDate("");
-    setLabels(""); setAssignee(UNASSIGNED);
+    setLabels(""); setAssignees([]);
   };
 
   const create = useMutation({
@@ -439,14 +519,19 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
       const { data: area, error: areaErr } = await supabase
         .from("areas").select("organization_id").eq("id", areaId).single();
       if (areaErr) throw areaErr;
-      const { error } = await supabase.from("tasks").insert({
+      const { data: created, error } = await supabase.from("tasks").insert({
         area_id: areaId, organization_id: area.organization_id,
         project_id: projectId ?? null, title, description: description || null,
         status, priority, due_date: dueDate || null,
         labels: labels ? labels.split(",").map((x) => x.trim()).filter(Boolean) : [],
-        created_by: u.user?.id, assignee_id: assignee === UNASSIGNED ? null : assignee,
-      });
+        created_by: u.user?.id, assignee_id: assignees[0] ?? null,
+      }).select("id").single();
       if (error) throw error;
+      if (assignees.length > 0 && created) {
+        const { error: linkErr } = await supabase.from("task_assignees")
+          .insert(assignees.map((user_id) => ({ task_id: created.id, user_id })));
+        if (linkErr) throw linkErr;
+      }
     },
     onSuccess: () => {
       toast.success("Tarefa criada");
@@ -484,16 +569,26 @@ export function NewTaskButton({ areaId, projectId, status = "todo", compact = fa
             <div><Label>Prazo</Label><Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} /></div>
           </div>
           <div>
-            <Label>Responsável</Label>
-            <Select value={assignee} onValueChange={setAssignee}>
-              <SelectTrigger><SelectValue placeholder="Sem responsável" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UNASSIGNED}>Sem responsável</SelectItem>
-                {members.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>{m.full_name ?? "Membro"}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Responsáveis</Label>
+            <div className="max-h-36 overflow-y-auto rounded-md border border-border p-2 space-y-1">
+              {members.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhum membro na equipe ainda.</p>
+              )}
+              {members.map((m) => {
+                const on = assignees.includes(m.id);
+                return (
+                  <label key={m.id} className="flex items-center gap-2 text-xs cursor-pointer py-0.5">
+                    <Checkbox
+                      checked={on}
+                      onCheckedChange={() =>
+                        setAssignees(on ? assignees.filter((x) => x !== m.id) : [...assignees, m.id])
+                      }
+                    />
+                    {m.full_name ?? "Membro"}
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div><Label>Etiquetas (separadas por vírgula)</Label><Input value={labels} onChange={(e) => setLabels(e.target.value)} /></div>
         </div>
