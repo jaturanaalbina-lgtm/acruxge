@@ -269,7 +269,7 @@ function PontoPage() {
       fmtTime(e.clock_in),
       e.clock_out ? fmtTime(e.clock_out) : "",
       e.duration_minutes ?? "",
-      ((e.notes ?? "") + ((e as any).edited_at ? " [ajustado manualmente]" : "")).replace(/\n/g, " "),
+      ((e.notes ?? "")).replace(/\n/g, " "),
     ]);
     const csv = [header, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
@@ -313,7 +313,7 @@ function PontoPage() {
           fmtTime(e.clock_in),
           e.clock_out ? fmtTime(e.clock_out) : "—",
           e.duration_minutes ? fmtDuration(e.duration_minutes) : "—",
-          ((e.notes ?? "").trim() || "—") + ((e as any).edited_at ? " (ajustado manualmente)" : ""),
+          ((e.notes ?? "").trim() || "—"),
         ]);
         if (i === sorted.length - 1 && sorted.length > 1) {
           body.push([

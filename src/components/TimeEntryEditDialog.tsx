@@ -69,7 +69,6 @@ export function TimeEntryEditDialog({
     const start = fromLocalParts(date, inTime);
     if (Number.isNaN(start.getTime())) return toast.error("Informe uma data e hora de entrada válidas.");
     const now = new Date();
-    if (start > now) return toast.error("A entrada não pode estar no futuro.");
 
     let clockOut: string | null = null;
     let duration: number | null = null;
@@ -78,7 +77,6 @@ export function TimeEntryEditDialog({
       const end = fromLocalParts(outDate || date, outTime);
       if (Number.isNaN(end.getTime())) return toast.error("Informe uma hora de saída válida.");
       if (end <= start) return toast.error("A saída precisa ser depois da entrada.");
-      if (end > now) return toast.error("A saída não pode estar no futuro.");
       const mins = Math.round((end.getTime() - start.getTime()) / 60000);
       if (mins > MAX_ENTRY_MINUTES) return toast.error("Um único registro não pode passar de 24 horas.");
       clockOut = end.toISOString();
@@ -86,9 +84,6 @@ export function TimeEntryEditDialog({
     }
 
     const report = notes.trim();
-    if (clockOut && report.length < MIN_REPORT) {
-      return toast.error(`Descreva com pelo menos ${MIN_REPORT} caracteres o que foi feito.`);
-    }
 
     setSaving(true);
     const { error } = await supabase
@@ -116,8 +111,8 @@ export function TimeEntryEditDialog({
         <DialogHeader>
           <DialogTitle>Ajustar registro de ponto</DialogTitle>
           <DialogDescription>
-            Corrija a data, os horários e o relatório. O total de horas é recalculado automaticamente e o
-            registro fica marcado como ajustado manualmente.
+            Corrija a data, os horários e o relatório. O total de horas é recalculado automaticamente. Os
+            relatórios exportados não mostram que o registro foi ajustado.
           </DialogDescription>
         </DialogHeader>
 
