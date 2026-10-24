@@ -112,12 +112,12 @@ function CalendarPage() {
     enabled: !!activeOrgId,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("tasks").select("id,title,due_date,status,assignee_id")
+        .from("tasks").select("id,title,due_date,status,assignee_id,task_assignees(user_id)")
         .eq("organization_id", activeOrgId!)
         .gte("due_date", rangeFrom).lte("due_date", rangeTo)
         .neq("status", "done");
       if (error) throw error;
-      return (data ?? []) as { id: string; title: string; due_date: string; status: string; assignee_id: string | null }[];
+      return (data ?? []) as { id: string; title: string; due_date: string; status: string; assignee_id: string | null; task_assignees?: { user_id: string }[] }[];
     },
   });
 
@@ -170,7 +170,7 @@ function CalendarPage() {
       }
 
       for (const t of deadlines) {
-        if (t.assignee_id !== user.id) continue;
+        if (t.assignee_id !== user.id && !t.task_assignees?.some((a) => a.user_id === user.id)) continue;
         if (t.due_date === tmr) {
           items.push({
             key: `tk-${t.id}-d1`, type: "task_due", title: "Prazo de tarefa amanhã",
