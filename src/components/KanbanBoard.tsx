@@ -117,6 +117,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
       return { prev };
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); toast.error("Não foi possível atualizar a tarefa."); },
+    onSuccess: (_d, v) => { if ("assignee_id" in v.patch) toast.success("Responsável atualizado"); },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
@@ -175,8 +176,14 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
     return idx;
   };
 
+  // Eventos de listas/janelas abertas a partir do cartão (portais) borbulham pela árvore React:
+  // ignorá-los para não "roubar" o clique.
+  const insideCard = (e: RPointerEvent) =>
+    (e.currentTarget as HTMLElement).contains(e.target as Node);
+
   const startDrag = (e: RPointerEvent, task: Task) => {
-    if ((e.target as HTMLElement).closest("button,select,[role='combobox'],a,input")) {
+    if (!insideCard(e)) return;
+    if ((e.target as HTMLElement).closest("button,select,[role='combobox'],[role='option'],[role='listbox'],[role='dialog'],a,input")) {
       const handle = (e.target as HTMLElement).closest("[data-drag-handle]");
       if (!handle) return;
     }
@@ -187,6 +194,7 @@ export function KanbanBoard({ areaId, projectId }: { areaId: string; projectId?:
   const moveDrag = (e: RPointerEvent) => {
     const cur = dragRef.current;
     if (!cur) return;
+    if (!cur.active && !insideCard(e)) return;
     if (!cur.active) {
       const dist = Math.hypot(e.clientX - cur.startX, e.clientY - cur.startY);
       if (dist < 5) return;
