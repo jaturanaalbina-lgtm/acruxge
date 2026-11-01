@@ -29,6 +29,13 @@
       "when": 1788741609155,
       "tag": "0003_superadmin_org_hub",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793559972401,
+      "tag": "0004_content_posts_org_members",
+      "breakpoints": true
     }
   ]
 }
