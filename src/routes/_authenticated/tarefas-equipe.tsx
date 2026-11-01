@@ -33,6 +33,8 @@ function TeamTasksPage() {
   const [to, setTo] = useState(() => new Date().toISOString().slice(0, 10));
   const [member, setMember] = useState("all");
   const [area, setArea] = useState("all");
+  const [showDoneDate, setShowDoneDate] = useState(false);
+  const [doneDates, setDoneDates] = useState<Record<string, string>>({});
 
   const { data: directory = [] } = useQuery({
     queryKey: ["directory", activeOrgId],
@@ -62,7 +64,7 @@ function TeamTasksPage() {
   const filtered = scoped.filter((t) => memberIds.includes(t.user_id));
   const g = periodTasks(filtered, from, to);
   const list = [...g.done, ...g.doing, ...g.todo];
-  const opts = { orgName: activeOrg?.brand_name || activeOrg?.name || "—", from, to, names };
+  const opts = { orgName: activeOrg?.brand_name || activeOrg?.name || "—", from, to, names, showDoneDate, doneDates };
 
   const exportCSV = () => {
     const rows = [["Membro", "Tarefa", "Área", "Situação", "Prazo", "Atrasada"],
@@ -114,6 +116,29 @@ function TeamTasksPage() {
             <FileDown /> {member === "all" ? "PDF individual de todos" : "PDF individual"}
           </Button>
         </div>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={showDoneDate} onChange={(e) => setShowDoneDate(e.target.checked)} />
+          Incluir data de conclusão no PDF
+        </label>
+        {showDoneDate && (() => {
+          const done = periodTasks(filtered, from, to).done;
+          if (done.length === 0) return <p className="text-xs text-muted-foreground">Nenhuma tarefa concluída no período.</p>;
+          return (
+            <div className="space-y-1 max-h-64 overflow-auto">
+              <p className="text-xs text-muted-foreground">Ajuste as datas como devem sair no PDF (não altera a tarefa).</p>
+              {done.map((t) => (
+                <div key={t.id + t.user_id} className="flex items-center gap-2 text-sm">
+                  <span className="flex-1 truncate">{t.title} <span className="text-muted-foreground">· {names[t.user_id] ?? "—"}</span></span>
+                  <Input type="date" className="w-40 h-8" value={doneDates[t.id] ?? t.updated_at.slice(0, 10)}
+                    onChange={(e) => setDoneDates((d) => ({ ...d, [t.id]: e.target.value }))} />
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </Card>
 
       <Card className="p-4 space-y-3">

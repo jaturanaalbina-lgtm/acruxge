@@ -473,7 +473,7 @@ function PontoPage() {
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {e.duration_minutes ? fmtDuration(e.duration_minutes) : "em curso"}
-                          {(e as any).edited_at ? " · ajustado" : ""}
+                          
                         </div>
                       </div>
                       <Textarea

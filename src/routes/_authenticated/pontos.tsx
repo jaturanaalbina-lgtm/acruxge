@@ -320,7 +320,7 @@ function PontosAdminPage() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {fmtDateLong(e.work_date)} · {e.duration_minutes ? fmtDuration(e.duration_minutes) : "em curso"}
-                  {e.edited_at ? " · ajustado" : ""}
+                  
                 </div>
               </div>
               <div className="text-sm text-muted-foreground whitespace-pre-wrap">

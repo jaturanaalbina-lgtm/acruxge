@@ -45,7 +45,7 @@ const tableStyle = {
   margin: { left: LM, right: 20, top: TOP, bottom: 30 },
 };
 
-function sections(doc: jsPDF, startY: number, g: ReturnType<typeof periodTasks>, names?: Record<string, string>) {
+function sections(doc: jsPDF, startY: number, g: ReturnType<typeof periodTasks>, o: Opts, names?: Record<string, string>) {
   let y = startY;
   const withMember = !!names;
   const list: [string, ReportTask[], string][] = [
@@ -65,12 +65,13 @@ function sections(doc: jsPDF, startY: number, g: ReturnType<typeof periodTasks>,
     autoTable(doc, {
       ...tableStyle,
       startY: y,
-      head: [[...(withMember ? ["Membro"] : []), "Tarefa", "Área", dateCol]],
+      head: [[...(withMember ? ["Membro"] : []), "Tarefa", "Área", ...(dateCol === "Prazo" || o.showDoneDate ? [dateCol] : [])]],
       body: rows.map((t) => [
         ...(withMember ? [names![t.user_id] ?? "—"] : []),
         t.title + (isLate(t) ? " (atrasada)" : ""),
         t.area_name,
-        fmtDay(dateCol === "Prazo" ? t.due_date : t.updated_at),
+        ...(dateCol === "Prazo" ? [fmtDay(t.due_date)]
+          : o.showDoneDate ? [fmtDay(o.doneDates?.[t.id] ?? t.updated_at)] : []),
       ]),
     });
     y = ((doc as any).lastAutoTable?.finalY ?? y) + 10;
@@ -86,7 +87,7 @@ function header(doc: jsPDF, title: string, lines: string[]) {
   return TOP + 8 + lines.length * 6 + 2;
 }
 
-type Opts = { orgName: string; from: string; to: string; names: Record<string, string> };
+type Opts = { orgName: string; from: string; to: string; names: Record<string, string>; showDoneDate?: boolean; doneDates?: Record<string, string> };
 const period = (o: Opts) => `Período: ${fmtDay(o.from)} a ${fmtDay(o.to)}`;
 
 export function exportTeamTasksPDF(tasks: ReportTask[], memberIds: string[], o: Opts) {
@@ -108,7 +109,7 @@ export function exportTeamTasksPDF(tasks: ReportTask[], memberIds: string[], o: 
     }),
   });
   y = ((doc as any).lastAutoTable?.finalY ?? y) + 10;
-  sections(doc, y, g, o.names);
+  sections(doc, y, g, o, o.names);
   doc.save(`tarefas-equipe-${o.from}-a-${o.to}.pdf`);
 }
 
@@ -121,7 +122,7 @@ export function exportIndividualTasksPDF(tasks: ReportTask[], memberIds: string[
       `Equipe: ${o.orgName}`, `Integrante: ${o.names[uid] ?? "—"}`, period(o),
       `Concluídas: ${g.done.length} · Em andamento: ${g.doing.length} · Não feitas: ${g.todo.length}`,
     ]);
-    sections(doc, y, g);
+    sections(doc, y, g, o);
   });
   const label = memberIds.length === 1
     ? (o.names[memberIds[0]] ?? "membro").replace(/\s+/g, "-").toLowerCase() : "individuais";
