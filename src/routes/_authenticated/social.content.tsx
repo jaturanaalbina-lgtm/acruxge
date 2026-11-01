@@ -56,6 +56,7 @@ function ContentPlanner() {
       const { data } = await supabase
         .from("content_posts")
         .select("*")
+        .eq("organization_id", activeOrgId!)
         .gte("post_date", monthStart.toISOString().slice(0, 10))
         .lte("post_date", monthEnd.toISOString().slice(0, 10))
         .order("post_date");
@@ -75,6 +76,7 @@ function ContentPlanner() {
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["posts"] }); toast.success("Removido"); },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const updateStatus = useMutation({
@@ -83,6 +85,7 @@ function ContentPlanner() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["posts"] }),
+    onError: (e: any) => toast.error(e.message),
   });
 
   const exportCsv = () => {
